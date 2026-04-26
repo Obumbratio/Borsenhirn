@@ -1,6 +1,8 @@
 # Credenciales y configuración sensible
 .env
 *.env
+.env.dev
+.env.local
 
 # Modelos entrenados
 models/
@@ -41,3 +43,15 @@ Thumbs.db
 # Backups
 *.bak
 versions/
+backups/
+*.dump
+*.sql.gz
+
+# ── Sprint B1 cleanup ────────────────────────────────────
+.claude/settings.local.json
+.coverage
+.coverage.*
+htmlcov/
+pytest-cache-files-*/
+.pytest_cache/
+.streamlit/secrets.toml

@@ -31,7 +31,8 @@ class Executor:
     def get_positions(self):
         try:
             return [{"symbol":p.symbol,"qty":float(p.qty),"avg_entry_price":float(p.avg_entry_price),
-                     "market_value":float(p.market_value)} for p in self.client.get_all_positions()]
+                     "market_value":float(p.market_value),
+                     "unrealized_pl":float(p.unrealized_pl)} for p in self.client.get_all_positions()]
         except Exception as e:
             logger.error(f"get_positions: {e}"); return []
 

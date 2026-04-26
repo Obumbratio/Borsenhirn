@@ -2,6 +2,7 @@ import os, sys, time, argparse, logging
 from datetime import datetime, timezone, timedelta
 from zoneinfo import ZoneInfo
 import config
+import logger as _logger_mod  # para register_external_alerter
 from logger import setup_logging, log_trade, send_alert
 from data_fetcher import DataFetcher
 from indicators import add_all_indicators
@@ -10,9 +11,15 @@ from risk_manager import RiskManager
 from execution import Executor
 from my_plan import load_plan, save_plan, PlanStrategy
 from market_context import get_full_context, format_context_summary
-from bot_memory import BotMemory
+from bot_memory_pg import BotMemory, _get_conn
 from scanner import MarketScanner
 from regime_detector import detect_regime
+from m3_risk import RiskEngine
+
+# ── Safety layer (kill switches + sanity + alertas) ───────────
+from borsenhirn.safety.bootstrap import (
+    SafetyStack, make_recent_trades_buffer, extract_equity_history_7d,
+)
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -44,7 +51,8 @@ def wait_next_bar(tf):
 
 
 def _handle_plan(plan, plan_strategy, fetcher, executor, risk, portfolio_value,
-                 trades_today, wins_today, losses_today, memory):
+                 trades_today, wins_today, losses_today, memory,
+                 safety=None, recent_trades_buffer=None, positions_list=None):
     """Ejecuta un ciclo completo de la estrategia del plan del usuario."""
     symbol = plan.get("symbol", "QQQ")
     plan_capital = portfolio_value * plan.get("capital_pct", 0.3)
@@ -72,7 +80,16 @@ def _handle_plan(plan, plan_strategy, fetcher, executor, risk, portfolio_value,
         if signal["action"] == "buy" and pos_qty == 0:
             qty = max(config.MIN_SHARES_PER_BUY, int(plan_capital / price))
             if qty > 0 and trades_today < config.MAX_TRADES_PER_DAY:
-                oid = executor.submit_order(symbol, qty, "buy")
+                if safety is not None:
+                    oid = safety.safe_submit_buy(
+                        executor, symbol, qty, price,
+                        positions_list=positions_list or [],
+                        recent_trades=recent_trades_buffer,
+                        portfolio_value=portfolio_value,
+                        reason=f"[MI PLAN] {signal['reason']}",
+                    )
+                else:
+                    oid = executor.submit_order(symbol, qty, "buy")
                 if oid:
                     trades_today += 1
                     plan["entry_price"]  = price
@@ -117,6 +134,22 @@ def run(train=False, once=False, live=False):
     memory = BotMemory()
     memory.log_summary()
 
+    # ── Safety stack: AlertManager + KillSwitch + SanityChecker ──
+    safety = SafetyStack.init_from_config(_get_conn)
+    _logger_mod.register_external_alerter(safety.alert_from_logger)
+    recent_trades_buffer = make_recent_trades_buffer(maxlen=200)
+    if safety.is_halted():
+        reasons = [r["key"] for r in safety.killswitch.active_reasons()]
+        logger.warning(f"[SAFETY] Bot inicia con kill switch ACTIVO: {reasons}")
+        safety.alert_mgr.critical(
+            "Bot arrancó en HALT",
+            f"Kill switches activos al arranque: {reasons}. "
+            f"Limpia con `python scripts/ks_admin.py clear --key <key>` "
+            f"para retomar trading.",
+        )
+    logger.info(f"[SAFETY] stack listo | canales: "
+                f"{[c.name for c in safety.alert_mgr.channels]}")
+
     if live:
         if not config.LIVE_ALPACA_API_KEY or config.LIVE_ALPACA_API_KEY == "YOUR_LIVE_API_KEY_HERE":
             logger.error("LIVE_ALPACA_API_KEY no configurada en .env — abortando.")
@@ -139,6 +172,13 @@ def run(train=False, once=False, live=False):
         df_h     = fetcher.get_historical(config.SYMBOL, start_dt, end_dt, config.TIMEFRAME)
         if not df_h.empty:
             m = model.train(add_all_indicators(df_h))
+            memory.record_ml_metrics(
+                accuracy=m.get("accuracy", 0),
+                precision=m.get("precision", 0),
+                recall=m.get("recall", 0),
+                f1=m.get("f1", 0),
+                n_samples=m.get("n_samples", 0),
+            )
             send_alert(f"Modelo entrenado. Accuracy={m.get('accuracy',0):.4f}")
     else:
         model.load_model()
@@ -158,12 +198,34 @@ def run(train=False, once=False, live=False):
         logger.info("Sin plan de usuario activo. Modo normal (solo SPY).")
 
     scanner = MarketScanner(model=model, fetcher=fetcher)
+    risk_engine = RiskEngine()
     acc     = executor.get_account()
     if acc:
         logger.info(f"Equity: ${acc.get('equity',0):.2f} | BP: ${acc.get('buying_power',0):.2f}")
         risk.update(acc.get("portfolio_value", config.CAPITAL), 0.0, 0)
 
     logger.info(f"Watchlist: {config.WATCHLIST} | Max posiciones: {config.MAX_OPEN_POSITIONS}")
+
+    # ── Limpieza de posiciones al inicio ─────────────────────
+    # Si hay más posiciones abiertas que MAX_OPEN_POSITIONS, cerrar las peores
+    startup_positions = executor.get_positions()
+    if len(startup_positions) > config.MAX_OPEN_POSITIONS:
+        excess = len(startup_positions) - config.MAX_OPEN_POSITIONS
+        logger.warning(
+            f"[STARTUP] {len(startup_positions)} posiciones abiertas > "
+            f"MAX_OPEN_POSITIONS={config.MAX_OPEN_POSITIONS}. "
+            f"Cerrando las {excess} peores."
+        )
+        # Ordenar por unrealized PnL ascendente (peores primero)
+        sorted_positions = sorted(startup_positions,
+                                  key=lambda p: p.get("unrealized_pl", 0.0))
+        for pos in sorted_positions[:excess]:
+            sym = pos["symbol"]
+            pnl = pos.get("unrealized_pl", 0.0)
+            logger.warning(
+                f"[STARTUP] Cerrando {sym} (unrealized PnL=${pnl:+.2f})"
+            )
+            executor.close_position(sym)
 
     # Restaurar estado del dia desde memoria (sobrevive reinicios y crashes)
     saved = memory.get_daily_state()
@@ -222,6 +284,13 @@ def run(train=False, once=False, live=False):
                         if not df_rt.empty:
                             m = model.train(add_all_indicators(df_rt))
                             memory.mark_trained()
+                            memory.record_ml_metrics(
+                                accuracy=m.get("accuracy", 0),
+                                precision=m.get("precision", 0),
+                                recall=m.get("recall", 0),
+                                f1=m.get("f1", 0),
+                                n_samples=m.get("n_samples", 0),
+                            )
                             send_alert(f"Modelo reentrenado. Accuracy={m.get('accuracy',0):.4f}")
                     except Exception as e:
                         logger.error(f"Retrain fallido: {e}")
@@ -244,6 +313,21 @@ def run(train=False, once=False, live=False):
 
             safe_pct     = plan.get("safe_capital_pct", 1.0) if (plan and plan.get("activo")) else 1.0
             safe_capital = portfolio_value * safe_pct
+
+            # ── Kill switch: revisión al inicio de cada ciclo ────
+            equity_7d = extract_equity_history_7d(memory)
+            snap = safety.build_snapshot(
+                equity_now=portfolio_value,
+                equity_day_start=day_start_equity,
+                daily_pnl=daily_pnl,
+                equity_history_7d=equity_7d,
+            )
+            if safety.check_and_halt(snap):
+                reasons = [r["key"] for r in safety.killswitch.active_reasons()]
+                logger.warning(f"[SAFETY] HALT activo: {reasons} — "
+                               f"bot en modo seguro, NO se envían órdenes.")
+                wait_next_bar(config.TIMEFRAME)
+                continue
 
             # ── Log de inicio de ciclo ───────────────────────
             pt_now = datetime.now(ZoneInfo("America/Los_Angeles"))
@@ -328,7 +412,9 @@ def run(train=False, once=False, live=False):
                 qty   = int(float(pos["qty"]))
                 price = entry["price"]
                 oid   = executor.submit_order(symbol, qty, "sell")
+                safety.register_sell(symbol, oid)
                 if oid:
+                    safety.register_sell_success(symbol, recent_trades_buffer)
                     trades_today += 1
                     entry_px = memory.get_entry_price(symbol)
                     if entry_px:
@@ -467,7 +553,18 @@ def run(train=False, once=False, live=False):
                 if not ok:
                     logger.info(f"[SCANNER] {symbol} BUY bloqueado: {msg}")
                     continue
-                oid = executor.submit_order(symbol, qty, "buy")
+                m3 = risk_engine.evaluate(symbol)
+                if m3["verdict"] == "HIGH":
+                    logger.info(f"[M3] {symbol} bloqueado — score={m3['score']:.2f} {m3['verdict_es']}")
+                    continue
+                logger.info(f"[M3] {symbol} aprobado {m3['emoji']} score={m3['score']:.2f}")
+                oid = safety.safe_submit_buy(
+                    executor, symbol, qty, price,
+                    positions_list=positions_list,
+                    recent_trades=recent_trades_buffer,
+                    portfolio_value=portfolio_value,
+                    reason=entry["signal"]["reason"],
+                )
                 if oid:
                     trades_today += 1
                     memory.set_entry_price(symbol, price)
@@ -494,13 +591,27 @@ def run(train=False, once=False, live=False):
                 trades_today, wins_today, losses_today = _handle_plan(
                     plan, plan_strategy, fetcher, executor,
                     risk, portfolio_value, trades_today,
-                    wins_today, losses_today, memory
+                    wins_today, losses_today, memory,
+                    safety=safety,
+                    recent_trades_buffer=recent_trades_buffer,
+                    positions_list=positions_list,
                 )
 
             # Guardar estado del dia (sobrevive crash/reinicio)
             memory.update_daily_state(
                 trades_today, wins_today, losses_today, day_start_equity
             )
+
+            # Guardar performance parcial del dia en cada ciclo
+            # para que reportes/dashboard siempre incluyan el dia actual
+            if day_start_equity is not None:
+                memory.record_day_end(
+                    equity=portfolio_value,
+                    pnl=daily_pnl,
+                    trades=trades_today,
+                    wins=wins_today,
+                    losses=losses_today,
+                )
 
             if once:
                 logger.info("Modo --once completado.")

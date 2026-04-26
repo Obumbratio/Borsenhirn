@@ -17,6 +17,7 @@ import os, logging, requests
 from datetime import datetime, timedelta, timezone
 
 import yfinance as yf
+from circuit_breaker import yfinance_cb, finnhub_cb, alphavantage_cb, newsapi_cb, fred_cb, polygon_cb
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +42,9 @@ def get_vix() -> dict:
     VIX 25-35 : tension, reducir posiciones
     VIX > 35  : panico, evitar compras nuevas
     """
+    if not yfinance_cb.can_call():
+        logger.warning("Circuit breaker yfinance abierto — omitiendo get_vix()")
+        return {"value": None, "level": "unknown", "signal": "neutral", "summary": "VIX no disponible"}
     try:
         hist  = yf.Ticker("^VIX").history(period="5d")
         if hist.empty:
@@ -63,6 +67,7 @@ def get_vix() -> dict:
             level, signal = "panico", "evitar_compras"
 
         logger.info(f"VIX={current} ({level}) | cambio={change:+.2f}")
+        yfinance_cb.record_success()
         return {
             "value":   current,
             "prev":    prev,
@@ -73,6 +78,7 @@ def get_vix() -> dict:
         }
     except Exception as e:
         logger.warning(f"VIX error: {e}")
+        yfinance_cb.record_failure()
         return {"value": None, "level": "unknown", "signal": "neutral", "summary": "VIX no disponible"}
 
 
@@ -126,6 +132,9 @@ def get_news_finnhub(symbol: str, days: int = 3) -> list:
     """Noticias recientes del simbolo via Finnhub."""
     if not FINNHUB_KEY or FINNHUB_KEY in ("demo", ""):
         return []
+    if not finnhub_cb.can_call():
+        logger.warning("Circuit breaker Finnhub abierto — omitiendo get_news_finnhub()")
+        return []
     try:
         today = datetime.now().strftime("%Y-%m-%d")
         since = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
@@ -146,9 +155,11 @@ def get_news_finnhub(symbol: str, days: int = 3) -> list:
                 "summary": n.get("summary", "")[:200],
             })
         logger.info(f"Finnhub: {len(news)} noticias para {symbol}")
+        finnhub_cb.record_success()
         return news
     except Exception as e:
         logger.warning(f"Finnhub noticias error: {e}")
+        finnhub_cb.record_failure()
         return []
 
 
@@ -158,6 +169,9 @@ def get_news_finnhub(symbol: str, days: int = 3) -> list:
 def get_news_alphavantage(symbol: str) -> list:
     """Noticias con score de sentimiento via Alpha Vantage."""
     if not ALPHAVANTAGE_KEY or ALPHAVANTAGE_KEY in ("demo", ""):
+        return []
+    if not alphavantage_cb.can_call():
+        logger.warning("Circuit breaker AlphaVantage abierto — omitiendo get_news_alphavantage()")
         return []
     try:
         r = requests.get(
@@ -186,9 +200,11 @@ def get_news_alphavantage(symbol: str) -> list:
                 "summary":   f"[{sentiment} {score:+.2f}] {item.get('summary','')[:150]}",
             })
         logger.info(f"AlphaVantage: {len(news)} noticias para {symbol}")
+        alphavantage_cb.record_success()
         return news
     except Exception as e:
         logger.warning(f"AlphaVantage noticias error: {e}")
+        alphavantage_cb.record_failure()
         return []
 
 
@@ -198,6 +214,9 @@ def get_news_alphavantage(symbol: str) -> list:
 def get_news_newsapi(symbol: str) -> list:
     """Noticias financieras generales via NewsAPI."""
     if not NEWSAPI_KEY or NEWSAPI_KEY == "":
+        return []
+    if not newsapi_cb.can_call():
+        logger.warning("Circuit breaker NewsAPI abierto — omitiendo get_news_newsapi()")
         return []
     try:
         query = f"{symbol} stock market"
@@ -226,9 +245,11 @@ def get_news_newsapi(symbol: str) -> list:
                 "summary": a.get("description", "")[:200],
             })
         logger.info(f"NewsAPI: {len(news)} articulos para '{symbol}'")
+        newsapi_cb.record_success()
         return news
     except Exception as e:
         logger.warning(f"NewsAPI error: {e}")
+        newsapi_cb.record_failure()
         return []
 
 
@@ -281,6 +302,9 @@ def get_fred_data() -> dict:
     """
     if not FRED_KEY or FRED_KEY == "":
         return {}
+    if not fred_cb.can_call():
+        logger.warning("Circuit breaker FRED abierto — omitiendo get_fred_data()")
+        return {}
     result = {}
     series = {
         "fed_rate":    "DFF",
@@ -307,8 +331,10 @@ def get_fred_data() -> dict:
                 result[name] = float(val) if val != "." else None
         except Exception as e:
             logger.warning(f"FRED {sid} error: {e}")
+            fred_cb.record_failure()
     if result:
         logger.info(f"FRED: tasa={result.get('fed_rate')} | inflacion={result.get('inflation')} | desempleo={result.get('unemployment')}")
+        fred_cb.record_success()
     return result
 
 
@@ -318,6 +344,9 @@ def get_fred_data() -> dict:
 def get_polygon_data(symbol: str) -> dict:
     """Datos de Polygon: short interest, descripcion del activo."""
     if not POLYGON_KEY or POLYGON_KEY == "":
+        return {}
+    if not polygon_cb.can_call():
+        logger.warning("Circuit breaker Polygon abierto — omitiendo get_polygon_data()")
         return {}
     try:
         r = requests.get(
@@ -333,9 +362,11 @@ def get_polygon_data(symbol: str) -> dict:
             "employees":   data.get("total_employees"),
         }
         logger.info(f"Polygon: {symbol} — {result['name']}")
+        polygon_cb.record_success()
         return result
     except Exception as e:
         logger.warning(f"Polygon error: {e}")
+        polygon_cb.record_failure()
         return {}
 
 

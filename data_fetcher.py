@@ -4,6 +4,7 @@ from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.data.requests import StockBarsRequest, StockLatestBarRequest, StockLatestTradeRequest
 from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
 import config
+from circuit_breaker import alpaca_cb
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +28,9 @@ class DataFetcher:
         tf = TIMEFRAME_MAP.get(timeframe)
         if not tf:
             raise ValueError(f"Timeframe '{timeframe}' no válido.")
+        if not alpaca_cb.can_call():
+            logger.warning(f"Circuit breaker Alpaca abierto — omitiendo get_historical({symbol})")
+            return pd.DataFrame()
         for attempt in range(1, retries + 1):
             try:
                 req  = StockBarsRequest(symbol_or_symbols=symbol, timeframe=tf,
@@ -43,27 +47,71 @@ class DataFetcher:
                 df = df[["open","high","low","close","volume"]].copy()
                 df.sort_index(inplace=True)
                 logger.info(f"{len(df)} velas descargadas ({symbol} {timeframe})")
+                alpaca_cb.record_success()
                 return df
             except Exception as e:
                 logger.error(f"Intento {attempt}: {e}")
                 if attempt < retries:
                     time.sleep(2 ** attempt)
+        alpaca_cb.record_failure()
         return pd.DataFrame()
 
     def get_latest_bar(self, symbol):
+        if not alpaca_cb.can_call():
+            logger.warning(f"Circuit breaker Alpaca abierto — omitiendo get_latest_bar({symbol})")
+            return pd.Series()
         try:
             req  = StockLatestBarRequest(symbol_or_symbols=symbol, feed="iex")
             bar  = self.client.get_stock_latest_bar(req)[symbol]
+            alpaca_cb.record_success()
             return pd.Series({"open":bar.open,"high":bar.high,"low":bar.low,
                                "close":bar.close,"volume":bar.volume}, name=bar.timestamp)
         except Exception as e:
             logger.error(f"get_latest_bar: {e}")
+            alpaca_cb.record_failure()
             return pd.Series()
 
     def get_current_price(self, symbol):
+        if not alpaca_cb.can_call():
+            logger.warning(f"Circuit breaker Alpaca abierto — omitiendo get_current_price({symbol})")
+            return 0.0
         try:
             req = StockLatestTradeRequest(symbol_or_symbols=symbol, feed="iex")
-            return float(self.client.get_stock_latest_trade(req)[symbol].price)
+            price = float(self.client.get_stock_latest_trade(req)[symbol].price)
+            alpaca_cb.record_success()
+            return price
         except Exception as e:
             logger.error(f"get_current_price: {e}")
+            alpaca_cb.record_failure()
             return 0.0
+
+    def subscribe_prices(self, symbols: list, callback):
+        """Subscribe to real-time price updates via WebSocket (optional).
+        Falls back to polling if WebSocket unavailable.
+
+        Args:
+            symbols: List of ticker symbols to subscribe to.
+            callback: Function(symbol: str, price: float) called on each bar update.
+
+        Returns:
+            True if WebSocket stream started, False if unavailable.
+        """
+        try:
+            from alpaca.data.live import StockDataStream
+            stream = StockDataStream(config.ALPACA_API_KEY, config.ALPACA_SECRET_KEY)
+
+            async def on_bar(bar):
+                callback(bar.symbol, float(bar.close))
+
+            for sym in symbols:
+                stream.subscribe_bars(on_bar, sym)
+
+            # Run in background thread
+            import threading
+            t = threading.Thread(target=stream.run, daemon=True)
+            t.start()
+            logger.info(f"[WS] Subscrito a {len(symbols)} simbolos via WebSocket")
+            return True
+        except Exception as e:
+            logger.warning(f"[WS] WebSocket no disponible: {e} — usando polling")
+            return False

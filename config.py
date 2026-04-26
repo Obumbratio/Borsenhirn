@@ -130,9 +130,50 @@ LOG_FORMAT = "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s"
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID   = os.getenv("TELEGRAM_CHAT_ID", "")
 
+# ── Alertas (Discord + Email + Dashboard) ─────────────────────────
+# IMPORTANTE: DISCORD_WEBHOOK_URL es una credencial. Pégala SOLO en .env.
+# Si alguna vez la compartiste, rotá el webhook desde Discord.
+DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL", "")
+
+SMTP_HOST        = os.getenv("SMTP_HOST", "smtp.gmail.com")
+SMTP_PORT        = int(os.getenv("SMTP_PORT", 587))
+SMTP_USER        = os.getenv("SMTP_USER", "")
+SMTP_PASSWORD    = os.getenv("SMTP_PASSWORD", "")
+SMTP_USE_TLS     = os.getenv("SMTP_USE_TLS", "true").lower() == "true"
+ALERT_EMAIL_TO   = [e.strip() for e in os.getenv("ALERT_EMAIL_TO", "").split(",") if e.strip()]
+
+ALERT_DEDUPE_WINDOW_SEC = int(os.getenv("ALERT_DEDUPE_WINDOW_SEC", 300))
+
+# ── Kill switch ───────────────────────────────────────────────────
+KS_MAX_DAILY_LOSS_PCT       = float(os.getenv("KS_MAX_DAILY_LOSS_PCT",
+                                              MAX_DAILY_LOSS_PCT))
+KS_MAX_DRAWDOWN_7D_PCT      = float(os.getenv("KS_MAX_DRAWDOWN_7D_PCT", 0.15))
+KS_MAX_CONSECUTIVE_FAILURES = int(os.getenv("KS_MAX_CONSECUTIVE_FAILURES", 5))
+
+# ── Sanity checks ─────────────────────────────────────────────────
+SANITY_MIN_PRICE          = float(os.getenv("SANITY_MIN_PRICE", 0.5))
+SANITY_MAX_PRICE          = float(os.getenv("SANITY_MAX_PRICE", 100_000))
+SANITY_MAX_QTY_PER_ORDER  = int(os.getenv("SANITY_MAX_QTY_PER_ORDER", 10_000))
+SANITY_WASH_GAP_SEC       = int(os.getenv("SANITY_WASH_GAP_SEC", 300))
+
+# ── Secrets vault (Gap 3) ─────────────────────────────────────────
+# Master key Fernet para encriptar credenciales de usuarios SaaS.
+# Generar con: python -c "from borsenhirn.security import generate_master_key; print(generate_master_key())"
+# NUNCA commitear el valor real — solo va en .env (que está en .gitignore).
+BORSENHIRN_MASTER_KEY     = os.getenv("BORSENHIRN_MASTER_KEY", "")
+# Para rotación: temporalmente ambos están seteados.
+BORSENHIRN_NEW_MASTER_KEY = os.getenv("BORSENHIRN_NEW_MASTER_KEY", "")
+
 # ── Fuentes de datos adicionales (todas opcionales) ───────
 FINNHUB_API_KEY      = os.getenv("FINNHUB_API_KEY", "")
 ALPHAVANTAGE_API_KEY = os.getenv("ALPHAVANTAGE_API_KEY", "")
 NEWSAPI_KEY          = os.getenv("NEWSAPI_KEY", "")
 FRED_API_KEY         = os.getenv("FRED_API_KEY", "")
 POLYGON_API_KEY      = os.getenv("POLYGON_API_KEY", "")
+
+DB_HOST     = os.getenv("DB_HOST", "localhost")
+DB_PORT     = int(os.getenv("DB_PORT", 5432))
+DB_NAME     = os.getenv("DB_NAME", "borsenhirn")
+DB_USER     = os.getenv("DB_USER", "postgres")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "uriel")
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")

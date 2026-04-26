@@ -1,0 +1,16 @@
+# Dependencias solo para desarrollo / test.
+# Compilar con:
+#   pip-compile --generate-hashes --output-file=requirements-dev.txt requirements-dev.in
+# Instalar con:
+#   pip-sync requirements.txt requirements-dev.txt
+
+-c requirements.in           # reutiliza pines de producción como constraints
+
+pip-tools>=7.3.0             # pip-compile, pip-sync
+pytest>=7.4.0
+pytest-cov>=4.1.0
+pytest-asyncio>=0.21.0
+hypothesis>=6.90.0           # property-based tests (util para Gap 8)
+fakeredis>=2.20.0            # Redis in-memory para tests cache (Gap 5)
+ruff>=0.1.0                  # linter/formatter moderno
+mypy>=1.7.0                  # type checking

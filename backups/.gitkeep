@@ -1,0 +1,2 @@
+# Esta carpeta guarda dumps de Postgres pre-migración.
+# Contenido (.dump, .sql.gz) está en .gitignore. Solo este .gitkeep va a git.
