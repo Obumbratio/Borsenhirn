@@ -15,10 +15,13 @@ Eso desacopla y facilita tests con mocks / SQLite in-memory.
 from __future__ import annotations
 
 import logging
+from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Any, Callable, List, Optional
+from typing import Any, Callable, Iterator, List, Optional
 
 from borsenhirn.security.vault import Vault, VaultError
+from borsenhirn.tenancy import is_valid_tenant_id
+from borsenhirn.tenancy.db import TenantContext
 
 logger = logging.getLogger(__name__)
 
@@ -57,9 +60,44 @@ class CredentialStore:
         self,
         get_conn: Callable[[], Any],
         vault: Vault,
+        tenant_id: Optional[str] = None,
     ) -> None:
+        """
+        Args:
+            get_conn: callable que devuelve una conexion psycopg2 (o
+                compatible). El CredentialStore NO la cierra al terminar.
+            vault: instancia Vault para encriptar/desencriptar.
+            tenant_id: si se pasa, todas las queries se ejecutan dentro
+                de un TenantContext que setea `app.current_tenant_id`.
+                Las RLS policies en `user_credentials` filtran por ese
+                tenant. Si es None (default), no se aplica scoping —
+                modo backwards-compat para tests / admin tasks que
+                conectan con un rol BYPASSRLS o controlan el contexto
+                externamente (ej. rotate_master_key.py usando bypass_rls).
+        """
         self.get_conn = get_conn
         self.vault = vault
+        if tenant_id is not None and not is_valid_tenant_id(tenant_id):
+            raise ValueError(f"tenant_id invalido: {tenant_id!r}")
+        self.tenant_id = tenant_id
+
+    @contextmanager
+    def _scoped_cursor(self, conn) -> Iterator[Any]:
+        """
+        Yields un cursor sobre `conn`, opcionalmente envuelto en un
+        TenantContext si self.tenant_id != None.
+
+        Si tenant_id es None: comportamiento idéntico a `with conn.cursor()`.
+        Si tenant_id está seteado: setea `app.current_tenant_id` antes
+        de abrir el cursor y lo limpia al salir.
+        """
+        if self.tenant_id is None:
+            with conn.cursor() as cur:
+                yield cur
+        else:
+            with TenantContext(conn, self.tenant_id):
+                with conn.cursor() as cur:
+                    yield cur
 
     # ── set ───────────────────────────────────────────────
 
@@ -95,7 +133,7 @@ class CredentialStore:
         """
         conn = self.get_conn()
         try:
-            with conn.cursor() as cur:
+            with self._scoped_cursor(conn) as cur:
                 cur.execute(sql, (
                     user_id, provider,
                     key_ct, sec_ct,
@@ -130,7 +168,7 @@ class CredentialStore:
         """
         conn = self.get_conn()
         try:
-            with conn.cursor() as cur:
+            with self._scoped_cursor(conn) as cur:
                 cur.execute(sql, (user_id, provider))
                 row = cur.fetchone()
         except Exception as exc:
@@ -168,7 +206,7 @@ class CredentialStore:
         sql = "DELETE FROM user_credentials WHERE user_id = %s AND provider = %s"
         conn = self.get_conn()
         try:
-            with conn.cursor() as cur:
+            with self._scoped_cursor(conn) as cur:
                 cur.execute(sql, (user_id, provider))
                 deleted = cur.rowcount
             conn.commit()
@@ -193,7 +231,7 @@ class CredentialStore:
             params = ()
         conn = self.get_conn()
         try:
-            with conn.cursor() as cur:
+            with self._scoped_cursor(conn) as cur:
                 cur.execute(sql, params)
                 return [str(r[0]) for r in cur.fetchall()]
         except Exception as exc:
@@ -205,7 +243,15 @@ class CredentialStore:
     def iter_all_ciphertexts(self):
         """
         Generator que produce (user_id, provider, key_ct, secret_ct).
-        Diseñado para rotación de master key — NO desencripta.
+        Disenado para rotacion de master key — NO desencripta.
+
+        Respeta tenant_id si esta configurado:
+            - tenant_id=None (admin) -> ve todas las filas (caller responsable
+              de tener BYPASSRLS o setear bypass_rls externamente).
+            - tenant_id="<uuid>" -> ve solo filas del tenant via RLS.
+
+        Para rotacion admin cross-tenant, construir el store con
+        tenant_id=None y conectar con el admin pool.
         """
         sql = """
             SELECT user_id, provider, api_key_ciphertext, api_secret_ciphertext
@@ -213,7 +259,7 @@ class CredentialStore:
              ORDER BY user_id, provider
         """
         conn = self.get_conn()
-        with conn.cursor() as cur:
+        with self._scoped_cursor(conn) as cur:
             cur.execute(sql)
             for row in cur.fetchall():
                 yield (str(row[0]), row[1], bytes(row[2]), bytes(row[3]))
@@ -239,7 +285,7 @@ class CredentialStore:
         """
         conn = self.get_conn()
         try:
-            with conn.cursor() as cur:
+            with self._scoped_cursor(conn) as cur:
                 cur.execute(sql, (
                     new_key_ct, new_secret_ct,
                     self.vault.CURRENT_VERSION,
