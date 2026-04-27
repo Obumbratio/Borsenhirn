@@ -11,7 +11,11 @@ from __future__ import annotations
 import json
 import logging
 import time
-from typing import Any, Dict, List, Optional
+from contextlib import contextmanager
+from typing import Any, Dict, Iterator, List, Optional
+
+from borsenhirn.tenancy import is_valid_tenant_id
+from borsenhirn.tenancy.db import TenantContext
 
 logger = logging.getLogger(__name__)
 
@@ -24,8 +28,34 @@ class PostgresStateStore:
     abierta. Cada método abre/cierra cursor pero no la conexión.
     """
 
-    def __init__(self, get_conn):
+    def __init__(self, get_conn, tenant_id: Optional[str] = None):
+        """
+        Args:
+            get_conn: callable que devuelve una conexion psycopg2.
+            tenant_id: si se pasa, todas las queries se ejecutan dentro
+                de un TenantContext que setea `app.current_tenant_id`.
+                Si es None (default), no se aplica scoping — modo
+                backwards-compat para callers admin (ks_admin.py) o
+                tests que usan BYPASSRLS.
+        """
         self.get_conn = get_conn
+        if tenant_id is not None and not is_valid_tenant_id(tenant_id):
+            raise ValueError(f"tenant_id invalido: {tenant_id!r}")
+        self.tenant_id = tenant_id
+
+    @contextmanager
+    def _scoped_cursor(self, conn) -> Iterator[Any]:
+        """
+        Yields un cursor sobre `conn`, opcionalmente envuelto en un
+        TenantContext si self.tenant_id != None.
+        """
+        if self.tenant_id is None:
+            with conn.cursor() as cur:
+                yield cur
+        else:
+            with TenantContext(conn, self.tenant_id):
+                with conn.cursor() as cur:
+                    yield cur
 
     def _row_to_dict(self, row, cols) -> Dict[str, Any]:
         return dict(zip(cols, row))
@@ -38,7 +68,7 @@ class PostgresStateStore:
         """
         conn = self.get_conn()
         try:
-            with conn.cursor() as cur:
+            with self._scoped_cursor(conn) as cur:
                 cur.execute(sql, (key,))
                 row = cur.fetchone()
                 if not row:
@@ -80,7 +110,7 @@ class PostgresStateStore:
         payload = json.dumps(data or {}, default=str)
         conn = self.get_conn()
         try:
-            with conn.cursor() as cur:
+            with self._scoped_cursor(conn) as cur:
                 cur.execute(sql, (key, triggered, reason, payload,
                                   triggered, triggered))
             conn.commit()
@@ -97,7 +127,7 @@ class PostgresStateStore:
         """
         conn = self.get_conn()
         try:
-            with conn.cursor() as cur:
+            with self._scoped_cursor(conn) as cur:
                 cur.execute(sql)
                 rows = cur.fetchall()
                 return [
@@ -124,7 +154,7 @@ class PostgresStateStore:
         """
         conn = self.get_conn()
         try:
-            with conn.cursor() as cur:
+            with self._scoped_cursor(conn) as cur:
                 cur.execute(sql, (note, key))
             conn.commit()
         except Exception as exc:
@@ -132,11 +162,20 @@ class PostgresStateStore:
             conn.rollback()
 
 
-def make_dashboard_db_write(get_conn):
+def make_dashboard_db_write(get_conn, tenant_id: Optional[str] = None):
     """
-    Helper que devuelve una función apta para DashboardChannel.
+    Helper que devuelve una funcion apta para DashboardChannel.
     Escribe una fila en alerts_log por cada alerta.
+
+    Args:
+        get_conn: callable que devuelve una conexion psycopg2.
+        tenant_id: si se pasa, cada INSERT se ejecuta dentro de un
+            TenantContext (RLS aplica). Si es None (default), no
+            se aplica scoping — backwards compat.
     """
+    if tenant_id is not None and not is_valid_tenant_id(tenant_id):
+        raise ValueError(f"tenant_id invalido: {tenant_id!r}")
+
     def _write(row: Dict[str, Any]) -> None:
         sql = """
             INSERT INTO alerts_log (level, subject, body, meta)
@@ -144,13 +183,23 @@ def make_dashboard_db_write(get_conn):
         """
         conn = get_conn()
         try:
-            with conn.cursor() as cur:
-                cur.execute(sql, (
-                    row.get("level"),
-                    row.get("subject"),
-                    row.get("body"),
-                    row.get("meta"),
-                ))
+            if tenant_id is None:
+                with conn.cursor() as cur:
+                    cur.execute(sql, (
+                        row.get("level"),
+                        row.get("subject"),
+                        row.get("body"),
+                        row.get("meta"),
+                    ))
+            else:
+                with TenantContext(conn, tenant_id):
+                    with conn.cursor() as cur:
+                        cur.execute(sql, (
+                            row.get("level"),
+                            row.get("subject"),
+                            row.get("body"),
+                            row.get("meta"),
+                        ))
             conn.commit()
         except Exception as exc:
             logger.error("alerts_log write falló: %s", exc)
