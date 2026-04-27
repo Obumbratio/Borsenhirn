@@ -8,10 +8,16 @@ con mínimas modificaciones al código existente.
 Uso típico en main.py:
 
     from borsenhirn.safety.bootstrap import SafetyStack
-    from bot_memory_pg import _get_conn  # ya existe en el proyecto
+    from borsenhirn import db as bdb
+    from borsenhirn.tenancy import DEFAULT_TENANT_UUID
     import logger as _logger
 
-    safety = SafetyStack.init_from_config(_get_conn)
+    def _safety_get_conn():
+        return bdb.get_app_pool().getconn()
+
+    safety = SafetyStack.init_from_config(
+        _safety_get_conn, tenant_id=DEFAULT_TENANT_UUID,
+    )
     _logger.register_external_alerter(safety.alert_from_logger)
 
     # En el loop:
@@ -85,10 +91,16 @@ class SafetyStack:
 
     # ── Init ─────────────────────────────────────────────
     @classmethod
-    def init_from_config(cls, get_conn_fn: Callable) -> "SafetyStack":
+    def init_from_config(
+        cls,
+        get_conn_fn: Callable,
+        tenant_id: Optional[str] = None,
+    ) -> "SafetyStack":
         """
         Construye todos los componentes leyendo de `config.py`.
         `get_conn_fn` debe devolver una conexión psycopg2 abierta.
+        `tenant_id` se propaga a los stores de Postgres (RLS) si != None.
+        Default None mantiene backwards compat para callers admin.
         """
         import config  # import tardío para evitar ciclos
 
@@ -106,13 +118,13 @@ class SafetyStack:
             discord_webhook_url=config.DISCORD_WEBHOOK_URL or None,
             smtp=smtp,
             email_to=config.ALERT_EMAIL_TO or None,
-            db_write_fn=make_dashboard_db_write(get_conn_fn),
+            db_write_fn=make_dashboard_db_write(get_conn_fn, tenant_id=tenant_id),
             dedupe_window_sec=config.ALERT_DEDUPE_WINDOW_SEC,
             min_level=AlertLevel.INFO,
         )
 
         # ── KillSwitch ────
-        ks_store = PostgresStateStore(get_conn_fn)
+        ks_store = PostgresStateStore(get_conn_fn, tenant_id=tenant_id)
         ks = KillSwitch(
             store=ks_store,
             alert_send=lambda subject, body, **meta:

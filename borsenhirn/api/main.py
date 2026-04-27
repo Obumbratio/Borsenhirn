@@ -1,6 +1,14 @@
 """
 api/main.py — FastAPI wrapper del trading bot.
 3 endpoints básicos: status, cycle, signal.
+
+TODO B3: derivar tenant_id desde auth context (Clerk JWT) cuando se
+agregue auth real. Por ahora la API no toca tablas con RLS — solo
+health check (Postgres SQLAlchemy) y cache Redis. Cuando /signal
+empiece a persistir contra tablas tenant-scoped, usar:
+    from borsenhirn import db as bdb
+    from borsenhirn.tenancy import DEFAULT_TENANT_UUID
+    # tenant_id = Depends(get_current_tenant)  # del auth
 """
 import logging
 from datetime import datetime, timezone
