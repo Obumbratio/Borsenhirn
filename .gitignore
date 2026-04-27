@@ -1,8 +1,5 @@
 # Credenciales y configuración sensible
 .env
-*.env
-.env.dev
-.env.local
 
 # Modelos entrenados
 models/
@@ -55,3 +52,5 @@ htmlcov/
 pytest-cache-files-*/
 .pytest_cache/
 .streamlit/secrets.toml
+.env.dev
+.env.local

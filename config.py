@@ -174,6 +174,19 @@ POLYGON_API_KEY      = os.getenv("POLYGON_API_KEY", "")
 DB_HOST     = os.getenv("DB_HOST", "localhost")
 DB_PORT     = int(os.getenv("DB_PORT", 5432))
 DB_NAME     = os.getenv("DB_NAME", "borsenhirn")
+
+# Admin / migration credentials (Postgres superuser).
+# Used ONLY by scripts/ migrations and TenantManager (admin lifecycle).
+# RUNTIME code must NOT use these — it routes through APP_DB_USER below.
 DB_USER     = os.getenv("DB_USER", "postgres")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "uriel")
+
+# Application credentials (B1 Sprint - Block 5).
+# Role borsenhirn_app is NOSUPERUSER + NOBYPASSRLS + LOGIN.
+# RLS policies in DB enforce per-tenant isolation against this role.
+# Defaults fall back to admin credentials so single-user dev keeps working
+# without setup; production SaaS deploys MUST set both env vars.
+APP_DB_USER     = os.getenv("APP_DB_USER", DB_USER)
+APP_DB_PASSWORD = os.getenv("APP_DB_PASSWORD", DB_PASSWORD)
+
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")

@@ -12,10 +12,10 @@ from enum import Enum
 from typing import Optional
 
 
-# UUID reservado para datos pre-multi-tenant (single-user histórico).
-# Cuando migrés bot_memory_pg.py al modelo multi-tenant, las filas
-# existentes se backfillean con este tenant_id.
-SYSTEM_TENANT_ID = "00000000-0000-0000-0000-000000000000"
+# Re-export de SYSTEM_TENANT_ID para mantener el contrato existente:
+#     from borsenhirn.tenancy.tenant import SYSTEM_TENANT_ID
+# La definición canónica vive en `borsenhirn.tenancy.constants`.
+from borsenhirn.tenancy.constants import SYSTEM_TENANT_ID  # noqa: F401
 
 
 class TenantStatus(str, Enum):
