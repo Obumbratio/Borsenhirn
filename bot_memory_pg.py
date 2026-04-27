@@ -1,23 +1,30 @@
 """
 bot_memory_pg.py — Memoria persistente del bot usando PostgreSQL.
 
-Reemplaza bot_memory.py (JSON) con la misma interfaz exacta.
-main.py no necesita ningún cambio — solo cambia el import:
+Reemplaza bot_memory.py (JSON) con la misma interfaz que main.py espera.
+Después del Sprint B1 (multi-tenancy phase B), todas las queries van
+filtradas por tenant_id vía Row-Level Security:
 
-    # Antes:
-    from bot_memory import BotMemory
+    # Construcción típica (single-tenant dev: usa el default).
+    mem = BotMemory()                                # tenant = default
+    mem = BotMemory(tenant_id="other-uuid-here")     # tenant explícito
 
-    # Después:
-    from bot_memory_pg import BotMemory
+    # Internamente cada método:
+    #   1. obtiene conn del app pool (rol borsenhirn_app, NOBYPASSRLS)
+    #   2. SET app.current_tenant_id = self.tenant_id  (RLS context)
+    #   3. ejecuta la query — RLS filtra por tenant
+    #   4. al salir, clear_current_tenant + devuelve conn al pool
 
-Tablas usadas (ya creadas por database.py):
+Tablas usadas (todas con tenant_id NOT NULL desde Sprint B1):
     - bot_daily_state      : estado del día actual
     - bot_performance      : historial diario de P&L
     - bot_trade_outcomes   : trades cerrados con P&L real
     - bot_entry_context    : condiciones al momento de compra
+    - bot_entry_prices     : precio de entrada por símbolo
     - bot_symbol_scores    : score acumulado por símbolo
     - bot_regime_stats     : rendimiento por régimen de mercado
     - bot_ml_training      : fecha del último retrain ML
+    - bot_ml_metrics       : métricas del último retrain
 """
 
 import logging
@@ -27,46 +34,25 @@ from contextlib import contextmanager
 
 import psycopg2
 import psycopg2.extras
-import psycopg2.pool
 from psycopg2.extras import RealDictCursor
 
-import config  # usa config.DATABASE_URL o variables individuales
+from borsenhirn import db as bdb
+from borsenhirn.tenancy import DEFAULT_TENANT_UUID, is_valid_tenant_id
 
 logger = logging.getLogger(__name__)
 
 
-# ── Connection Pool ────────────────────────────────────────────────────────────
-
-_pool = None
-
-def _get_pool():
-    """Retorna el pool de conexiones (singleton, creado en primera llamada)."""
-    global _pool
-    if _pool is None or _pool.closed:
-        _pool = psycopg2.pool.ThreadedConnectionPool(
-            minconn=1,
-            maxconn=5,
-            host=getattr(config, "DB_HOST", "localhost"),
-            port=getattr(config, "DB_PORT", 5432),
-            dbname=getattr(config, "DB_NAME", "borsenhirn"),
-            user=getattr(config, "DB_USER", "postgres"),
-            password=getattr(config, "DB_PASSWORD", ""),
-        )
-    return _pool
-
-@contextmanager
-def _get_conn():
-    """Context manager que toma una conexión del pool y la devuelve al salir."""
-    pool = _get_pool()
-    conn = pool.getconn()
-    try:
-        yield conn
-    finally:
-        pool.putconn(conn)
-
-
 # ── Crear tablas si no existen ────────────────────────────────────────────────
-
+#
+# Nota Sprint B1: este DDL se mantiene por compatibilidad para entornos
+# donde las tablas todavía no existen. En `borsenhirn_dev`/`borsenhirn`
+# las tablas ya están creadas por el sprint con tenant_id NOT NULL.
+# El DDL acá no incluye tenant_id porque CREATE TABLE IF NOT EXISTS es
+# no-op cuando la tabla ya existe; el DDL "viejo" coexiste con el schema
+# actual sin conflicto.
+#
+# IMPORTANTE: este DDL corre con el ADMIN pool (postgres), porque el rol
+# borsenhirn_app no tiene CREATE TABLE en schema public.
 _DDL = """
 CREATE TABLE IF NOT EXISTS bot_daily_state (
     id               SERIAL PRIMARY KEY,
@@ -170,25 +156,56 @@ def _ensure_tables(conn):
 
 class BotMemory:
     """
-    Memoria persistente del bot usando PostgreSQL con connection pooling.
-    Interfaz 100% idéntica a bot_memory.BotMemory (versión JSON).
+    Memoria persistente del bot usando PostgreSQL.
+
+    Sprint B1 (multi-tenancy phase B):
+        - Constructor acepta tenant_id (default = DEFAULT_TENANT_UUID).
+        - Conexiones obtenidas del app pool (rol borsenhirn_app, NOBYPASSRLS).
+        - Cada método ejecuta dentro de un TenantContext que setea
+          `app.current_tenant_id` para que las RLS policies filtren por tenant.
+        - Las firmas de métodos públicos NO cambian respecto a la versión
+          pre-B1: main.py y demás callers no necesitan ajustes (excepto
+          opcionalmente pasar tenant_id explícito).
     """
 
-    def __init__(self):
+    def __init__(self, tenant_id: str = DEFAULT_TENANT_UUID):
+        if not is_valid_tenant_id(tenant_id):
+            raise ValueError(f"tenant_id invalido: {tenant_id!r}")
+        self.tenant_id = tenant_id
+
         try:
-            with _get_conn() as conn:
+            # Bootstrap DDL: usa admin pool porque CREATE TABLE no esta
+            # permitido al rol app. CREATE TABLE IF NOT EXISTS es no-op
+            # cuando las tablas ya existen (caso normal post-Sprint B1).
+            with bdb.get_conn(role="admin") as conn:
                 _ensure_tables(conn)
-            logger.info("[MEMORIA-PG] Conectado a PostgreSQL (pool).")
+            logger.info(
+                "[MEMORIA-PG] Conectado a PostgreSQL (tenant_id=%s).",
+                self.tenant_id,
+            )
         except Exception as e:
             logger.error(f"[MEMORIA-PG] Error conectando a Postgres: {e}")
             raise
 
     @contextmanager
     def _db(self):
-        """Context manager: obtiene conexión del pool con cursor RealDictCursor."""
-        with _get_conn() as conn:
-            with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                yield conn, cur
+        """
+        Context manager: obtiene conexion del app pool, setea tenant
+        context (RLS) y abre cursor RealDictCursor.
+
+        Yields:
+            (conn, cur) — conn psycopg2 + cursor RealDictCursor.
+
+        Comportamiento:
+            - La conn vuelve al pool al salir (no se cierra).
+            - El tenant context se limpia al salir aunque haya excepcion.
+            - Si el caller deja una transaccion sin commit/rollback,
+              borsenhirn.db._safely_return hace rollback antes de devolverla.
+        """
+        with bdb.get_conn(role="app") as conn:
+            with bdb.set_tenant(conn, self.tenant_id):
+                with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                    yield conn, cur
 
     # ── Estado diario ─────────────────────────────────────────────
 
@@ -412,7 +429,7 @@ class BotMemory:
 
     def record_ml_metrics(self, accuracy: float, precision: float,
                           recall: float, f1: float, n_samples: int):
-        """Registra métricas del último retrain del modelo ML."""
+        """Registra metricas del ultimo retrain del modelo ML."""
         with self._db() as (conn, cur):
             cur.execute("""
                 INSERT INTO bot_ml_metrics
@@ -425,7 +442,7 @@ class BotMemory:
                     f"prec={precision:.4f} rec={recall:.4f} f1={f1:.4f} n={n_samples}")
 
     def get_ml_metrics_history(self, n: int = 10) -> list:
-        """Retorna las últimas n métricas de retrain del modelo ML."""
+        """Retorna las ultimas n metricas de retrain del modelo ML."""
         with self._db() as (conn, cur):
             cur.execute("""
                 SELECT trained_date, accuracy, precision_score, recall_score,
@@ -673,7 +690,7 @@ class BotMemory:
             if parts:
                 logger.info(f"[MEMORIA-PG] Por regimen | " + " | ".join(parts))
 
-    # ── Migración desde JSON ──────────────────────────────────────
+    # ── Migracion desde JSON ──────────────────────────────────────
 
     def migrate_from_json(self, json_path: str = "reports/bot_memory.json"):
         import json, os
@@ -757,4 +774,4 @@ class BotMemory:
             except Exception as e:
                 logger.warning(f"[MIGRATE] last_trained: {e}")
 
-        logger.info(f"[MIGRATE] Migración completada. {migrated} registros importados desde {json_path}")
+        logger.info(f"[MIGRATE] Migracion completada. {migrated} registros importados desde {json_path}")
