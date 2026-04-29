@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# TODO: fix ANSI color rendering using $'\033[0;32m' or tput (cosmetic only)
 # scripts/b1_health_check.sh
 #
 # Health check completo del Sprint B1 (multi-tenancy phase B).
