@@ -11,10 +11,12 @@ from risk_manager import RiskManager
 from execution import Executor
 from my_plan import load_plan, save_plan, PlanStrategy
 from market_context import get_full_context, format_context_summary
-from bot_memory_pg import BotMemory, _get_conn
+from bot_memory_pg import BotMemory
 from scanner import MarketScanner
 from regime_detector import detect_regime
 from m3_risk import RiskEngine
+from borsenhirn import db as bdb
+from borsenhirn.tenancy import DEFAULT_TENANT_UUID
 
 # ── Safety layer (kill switches + sanity + alertas) ───────────
 from borsenhirn.safety.bootstrap import (
@@ -28,6 +30,24 @@ SLEEP_MAP    = {"1Min":60,"5Min":300,"15Min":900,"1Hour":3600,"4Hour":14400,"1Da
 LOOKBACK_DAYS = {"1Min":3,"5Min":7,"15Min":14,"1Hour":60,"4Hour":160,"1Day":400}
 
 _ET = ZoneInfo("America/New_York")
+
+
+def _safety_get_conn():
+    """
+    Devuelve conn fresca del app pool, compatible con el contrato
+    `get_conn_fn` que espera SafetyStack (funcion plain, NO context
+    manager — la conn se mantiene abierta hasta que el caller la
+    descarte por GC).
+
+    Reemplazo del `_get_conn` viejo de bot_memory_pg que fue
+    eliminado en B1 5.4.a junto con el pool propio del modulo.
+
+    Nota: el bot real usa pocas conns simultaneas para safety
+    (1-2), asi que el pool de tamano 10 sobra. Si el flujo
+    cambiara, refactorizar a context manager.
+    """
+    return bdb.get_app_pool().getconn()
+
 
 def is_market_open() -> bool:
     """Retorna True solo durante horario regular NYSE (9:30am–4:00pm ET, lun–vie)."""
@@ -131,11 +151,13 @@ def run(train=False, once=False, live=False):
     logger.info(f"  {config.SYMBOL} | {config.TIMEFRAME}")
     logger.info("=" * 55)
 
-    memory = BotMemory()
+    memory = BotMemory(tenant_id=DEFAULT_TENANT_UUID)
     memory.log_summary()
 
     # ── Safety stack: AlertManager + KillSwitch + SanityChecker ──
-    safety = SafetyStack.init_from_config(_get_conn)
+    safety = SafetyStack.init_from_config(
+        _safety_get_conn, tenant_id=DEFAULT_TENANT_UUID,
+    )
     _logger_mod.register_external_alerter(safety.alert_from_logger)
     recent_trades_buffer = make_recent_trades_buffer(maxlen=200)
     if safety.is_halted():
