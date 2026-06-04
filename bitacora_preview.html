@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"/>
+<title>Bitácora Nocturna · v1.1 preview · Eintrag №412</title>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Georgia&family=Inter:wght@400;600&display=swap');
+
+html, body, [class*="css"], .stApp {
+    background-color: #0F0D0A !important;
+    color: #E8DEC9;
+    font-family: Georgia, serif;
+}
+
+.block-container {
+    padding-top: 1.2rem !important;
+    padding-bottom: 2rem !important;
+    max-width: 1320px;
+}
+
+header[data-testid="stHeader"] {
+    background: #0F0D0A !important;
+    height: 0;
+}
+
+div[data-testid="metric-container"] {
+    background: transparent !important;
+    border: none !important;
+}
+
+.stButton > button {
+    background: #1A1610;
+    border: 0.5px solid #3A3025;
+    color: #E8DEC9;
+    font-family: Inter, sans-serif;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border-radius: 2px;
+    padding: 8px 14px;
+    transition: border-color 280ms ease, background-color 280ms ease;
+}
+.stButton > button:hover {
+    background: #221C14;
+    border-color: #C9A96A;
+    color: #E8DEC9;
+}
+
+.stTextInput input, .stTextArea textarea {
+    background: #0F0D0A !important;
+    border: 0.5px solid #3A3025 !important;
+    color: #E8DEC9 !important;
+    font-family: Georgia, serif;
+    font-style: italic;
+    font-size: 13px;
+    border-radius: 2px;
+}
+
+.stSelectbox > div > div {
+    background: #1A1610 !important;
+    border: 0.5px solid #3A3025 !important;
+    color: #E8DEC9 !important;
+}
+
+.stCheckbox > label {
+    color: #A89878 !important;
+    font-family: Inter, sans-serif;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+#MainMenu, footer { visibility: hidden; }
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #0F0D0A; }
+::-webkit-scrollbar-thumb { background: #3A3025; border-radius: 1px; }
+::-webkit-scrollbar-thumb:hover { background: #C9A96A; }
+
+.bita-disclaimer {
+    background: #221C14;
+    border: 0.5px solid #3A3025;
+    border-left: 2px solid #C9A96A;
+    padding: 8px 14px;
+    margin: 0 0 14px 0;
+    font-family: Inter, sans-serif;
+    font-size: 9.5px;
+    letter-spacing: 1.5px;
+    color: #A89878;
+    line-height: 1.7;
+    text-transform: uppercase;
+    border-radius: 2px;
+}
+.bita-disclaimer b { color: #C9A96A; letter-spacing: 1.8px; }
+.bita-disclaimer a { color: #E8DEC9; text-decoration: underline; }
+
+.bita-pill {
+    display: inline-block;
+    background: #1A1610;
+    border: 0.5px solid #3A3025;
+    color: #E8DEC9;
+    font-family: Inter, sans-serif;
+    font-size: 10px;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    padding: 6px 12px;
+    margin: 0 4px 6px 0;
+    border-radius: 2px;
+}
+
+.bita-hirn-bubble {
+    background: #1A1610;
+    border-left: 2px solid #C9A96A;
+    padding: 12px 16px;
+    margin-bottom: 10px;
+    font-family: Georgia, serif;
+    font-size: 13.5px;
+    font-style: italic;
+    line-height: 1.65;
+    color: #E8DEC9;
+}
+.bita-user-bubble {
+    background: #1A1610;
+    border-left: 2px solid #3A3025;
+    padding: 12px 16px;
+    margin-bottom: 10px;
+    font-family: Inter, sans-serif;
+    font-size: 12px;
+    color: #E8DEC9;
+}
+.bita-bubble-sig {
+    margin-top: 8px;
+    font-family: Inter, sans-serif;
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    color: #A89878;
+    text-transform: uppercase;
+}
+
+.bita-footer {
+    margin-top: 36px;
+    padding-top: 14px;
+    border-top: 0.5px solid #3A3025;
+    text-align: center;
+    font-family: Inter, sans-serif;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: #A89878;
+    line-height: 1.9;
+    text-transform: uppercase;
+}
+.bita-footer a { color: #A89878; text-decoration: none; margin: 0 8px; }
+.bita-footer a:hover { color: #C9A96A; }
+</style>
+
+<style>
+  body { margin:0;padding:28px 32px;max-width:1320px;margin:0 auto;background:#0F0D0A; }
+  .vg-grid { display:grid;grid-template-columns:1.7fr 1fr;gap:14px;margin-bottom:14px; }
+  .perf-grid { display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:8px; }
+</style></head><body>
+
+
+<div class="bita-disclaimer">
+  <b>⚠ EDUCATIONAL TOOL · NO ES CONSEJO FINANCIERO ·</b>
+  Cualquier "señal" o "score" mostrado aquí es para investigación personal.
+  Resultados pasados no predicen retornos futuros.
+  <a href="https://github.com/Obumbratio/proyecto_trading/blob/main/legal/DISCLAIMER.md"
+     target="_blank">Disclaimer completo →</a>
+</div>
+
+
+
+<div style="display:flex;justify-content:space-between;align-items:flex-end;
+            border-bottom:1px solid #3A3025;padding-bottom:14px;
+            margin-bottom:18px">
+  <div>
+    <div style="display:flex;align-items:baseline;gap:10px">
+      <span style="font-family:Georgia,serif;font-size:24px;font-weight:600;
+                   letter-spacing:-0.5px;color:#E8DEC9">
+        Bitácora del cerebro
+      </span>
+      <span style="font-family:Georgia,serif;font-style:italic;font-size:13px;
+                   color:#A89878">Börsenhirn · v1.0</span>
+    </div>
+    <div style="font-family:Inter,sans-serif;font-size:9px;letter-spacing:2.5px;
+                color:#A89878;margin-top:5px">SONNTAG · DOMINGO 26 ABR 2026 · 08:15 UTC · EINTRAG №412</div>
+  </div>
+  <div style="display:flex;gap:14px;align-items:center;
+              font-family:Inter,sans-serif;font-size:10px;
+              color:#A89878;letter-spacing:1.2px">
+    <div style="display:flex;align-items:center;gap:6px">
+      <span style="width:6px;height:6px;background:#9BB37E;
+                   border-radius:50%;display:inline-block"></span>
+      <span>BOT · WACH</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <span style="width:6px;height:6px;background:#9BB37E;
+                   border-radius:50%;display:inline-block"></span>
+      <span>ALPACA · OK</span>
+    </div>
+    <div style="color:#C9A96A">PAPER · T+28d</div>
+  </div>
+</div>
+
+
+
+<div style="background:#1A1610;
+            border-left:2px solid #C9A96A;
+            padding:14px 18px;margin-bottom:18px">
+  <div style="font-family:Inter,sans-serif;font-size:9px;letter-spacing:2px;
+              color:#A89878;margin-bottom:8px">
+    — HEUTIGE BEOBACHTUNG · LECTURA DEL DÍA
+  </div>
+  <div style="font-family:Georgia,serif;font-style:italic;font-size:14.5px;
+              line-height:1.65;color:#E8DEC9">
+    "Bullenmarkt — el mercado respira hondo. VIX en 19 — calma con tensión. Doce posiciones — vier ganando, sieben cediendo terreno. Net positiv $3,908 acumulado · seit 28 Tage. Dejo correr lo que corre — cerrar por cerrar no es estrategia."
+  </div>
+  <div style="display:flex;justify-content:space-between;margin-top:10px;
+              font-family:Inter,sans-serif;font-size:9px;letter-spacing:1.5px;
+              color:#A89878">
+    <span>FIRMA · M2.ANALYST · KONFIDENZ 87%</span>
+    <span>BASIS · 9/9 KOMPONENTEN AKTIV</span>
+  </div>
+</div>
+
+
+<div class="vg-grid">
+  
+<div style="background:#1A1610;border:0.5px solid #3A3025;
+            padding:14px 16px">
+  <div style="display:flex;justify-content:space-between;align-items:baseline;
+              margin-bottom:8px">
+    <span style="font-family:Inter,sans-serif;font-size:9px;letter-spacing:2.5px;color:#A89878;text-transform:uppercase">— DAS VERMÖGEN · EQUITY</span>
+    <span style="font-family:Inter,sans-serif;font-size:10px;letter-spacing:1.5px;color:#A89878;text-transform:uppercase">28 TAGE · ALPACA</span>
+  </div>
+  <div style="display:flex;align-items:baseline;gap:10px">
+    <span style="font-family:Georgia,serif;font-size:32px;font-weight:600;
+                 letter-spacing:-1px;line-height:1;color:#E8DEC9">
+      $107,878.51
+    </span>
+    <span style="font-family:Inter,sans-serif;font-size:13px;color:#9BB37E">
+      +3.76%
+    </span>
+  </div>
+  <div style="font-family:Inter,sans-serif;font-size:11px;color:#9BB37E;
+              margin-top:3px">+$3,908.77 acumulado · seit 28. März</div>
+  
+<svg viewBox="0 0 400 64" preserveAspectRatio="none"
+     style="width:100%;height:64px;margin-top:10px">
+  <defs>
+    <linearGradient id="vg_grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9BB37E" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#9BB37E" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <line x1="0" y1="32" x2="400" y2="32"
+        stroke="#3A3025" stroke-dasharray="2 4" stroke-width="0.5"/>
+  <polygon fill="url(#vg_grad)" points="0,64 0.0,60.0 14.8,57.3 29.6,54.7 44.4,52.0 59.3,52.0 74.1,49.3 88.9,46.7 103.7,44.0 118.5,44.0 133.3,41.3 148.1,38.7 163.0,36.0 177.8,36.0 192.6,33.3 207.4,30.7 222.2,28.0 237.0,28.0 251.9,25.3 266.7,22.7 281.5,20.0 296.3,20.0 311.1,17.3 325.9,14.7 340.7,12.0 355.6,12.0 370.4,9.3 385.2,6.7 400.0,4.0 400,64"/>
+  <polyline fill="none" stroke="#9BB37E" stroke-width="1.4" points="0.0,60.0 14.8,57.3 29.6,54.7 44.4,52.0 59.3,52.0 74.1,49.3 88.9,46.7 103.7,44.0 118.5,44.0 133.3,41.3 148.1,38.7 163.0,36.0 177.8,36.0 192.6,33.3 207.4,30.7 222.2,28.0 237.0,28.0 251.9,25.3 266.7,22.7 281.5,20.0 296.3,20.0 311.1,17.3 325.9,14.7 340.7,12.0 355.6,12.0 370.4,9.3 385.2,6.7 400.0,4.0"/>
+  <circle cx="400.0" cy="4.0" r="3" fill="#9BB37E"/>
+</svg>
+<div style="display:flex;justify-content:space-between;font-family:Inter,sans-serif;font-size:9px;letter-spacing:1px;color:#A89878;margin-top:4px"><span>28 MAR</span><span>04 ABR</span><span>11 ABR</span><span>18 ABR</span><span>26 ABR</span></div>
+
+</div>
+
+  
+<div style="background:#1A1610;border:0.5px solid #3A3025;
+            padding:14px;text-align:center;display:flex;flex-direction:column;
+            justify-content:center;height:100%">
+  <div style="font-family:Inter,sans-serif;font-size:9px;letter-spacing:2.5px;
+              color:#A89878;margin-bottom:8px">
+    — DER ZUSTAND · REGIME
+  </div>
+  <svg viewBox="0 0 110 110" style="width:108px;height:108px;display:block;margin:0 auto">
+    <circle cx="55" cy="55" r="44" fill="none"
+            stroke="#3A3025" stroke-width="5"/>
+    <circle cx="55" cy="55" r="44" fill="none"
+            stroke="#9BB37E" stroke-width="5"
+            stroke-dasharray="240.5 35.9"
+            stroke-linecap="round" transform="rotate(-90 55 55)"/>
+    <text x="55" y="50" text-anchor="middle" fill="#E8DEC9"
+          font-family="Georgia" font-size="20" font-weight="600">87</text>
+    <text x="55" y="64" text-anchor="middle" fill="#A89878"
+          font-family="Inter" font-size="7" letter-spacing="1.5">KONFIDENZ</text>
+  </svg>
+  <div style="font-family:Georgia,serif;font-size:16px;color:#9BB37E;
+              font-style:italic;margin-top:8px">Bullenmarkt</div>
+  <div style="font-family:Inter,sans-serif;font-size:10px;color:#A89878;
+              margin-top:2px;letter-spacing:1px">87% últimos 28 días</div>
+</div>
+
+</div>
+
+
+<div style="background:#1A1610;border:0.5px solid #3A3025;
+            padding:14px;margin-bottom:14px">
+  <div style="display:flex;justify-content:space-between;align-items:center;
+              margin-bottom:10px">
+    <span style="font-family:Inter,sans-serif;font-size:9px;letter-spacing:2.5px;color:#A89878;text-transform:uppercase">— REGIME-VERLAUF · 28 DÍAS</span>
+    <div style="font-family:Inter,sans-serif;font-size:9px;
+                color:#A89878;display:flex;gap:14px;
+                letter-spacing:1px"><span><span style="color:#9BB37E">●</span> BULL 79%</span> · <span><span style="color:#C9A96A">●</span> SIDE 11%</span> · <span><span style="color:#A86850">●</span> BEAR 7%</span> · <span><span style="color:#7A3525">●</span> PANIK 4%</span></div>
+  </div>
+  <div style="display:flex;gap:1px;height:8px;border-radius:2px;overflow:hidden;
+              background:#0F0D0A">
+    <div style="flex:1;background:#9BB37E;min-width:2px"></div><div style="flex:1;background:#9BB37E;min-width:2px"></div><div style="flex:1;background:#9BB37E;min-width:2px"></div><div style="flex:1;background:#9BB37E;min-width:2px"></div><div style="flex:1;background:#9BB37E;min-width:2px"></div><div style="flex:1;background:#C9A96A;min-width:2px"></div><div style="flex:1;background:#9BB37E;min-width:2px"></div><div style="flex:1;background:#9BB37E;min-width:2px"></div><div style="flex:1;background:#9BB37E;min-width:2px"></div><div style="flex:1;background:#9BB37E;min-width:2px"></div><div style="flex:1;background:#9BB37E;min-width:2px"></div><div style="flex:1;background:#9BB37E;min-width:2px"></div><div style="flex:1;background:#C9A96A;min-width:2px"></div><div style="flex:1;background:#9BB37E;min-width:2px"></div><div style="flex:1;background:#9BB37E;min-width:2px"></div><div style="flex:1;background:#9BB37E;min-width:2px"></div><div style="flex:1;background:#9BB37E;min-width:2px"></div><div style="flex:1;background:#A86850;min-width:2px"></div><div style="flex:1;background:#C9A96A;min-width:2px"></div><div style="flex:1;background:#9BB37E;min-width:2px"></div><div style="flex:1;background:#9BB37E;min-width:2px"></div><div style="flex:1;background:#9BB37E;min-width:2px"></div><div style="flex:1;background:#9BB37E;min-width:2px"></div><div style="flex:1;background:#9BB37E;min-width:2px"></div><div style="flex:1;background:#7A3525;min-width:2px"></div><div style="flex:1;background:#A86850;min-width:2px"></div><div style="flex:1;background:#9BB37E;min-width:2px"></div><div style="flex:1;background:#9BB37E;min-width:2px"></div>
+  </div>
+</div>
+
+
+
+<div style="display:grid;grid-template-columns:repeat(6,1fr);
+            gap:1px;background:#3A3025;margin-bottom:14px">
+  
+<div style="background:#1A1610;padding:12px 13px">
+  <div style="font-family:Inter,sans-serif;font-size:8px;letter-spacing:1.5px;
+              color:#A89878;margin-bottom:4px;text-transform:uppercase">
+    BARGELD
+  </div>
+  <div style="font-family:Inter,sans-serif;font-size:14px;color:#E8DEC9;
+              font-weight:600">$31,853</div>
+  <div style="font-family:Inter,sans-serif;font-size:9px;color:#A89878;
+              margin-top:2px">29% verfügbar</div>
+</div>
+
+<div style="background:#1A1610;padding:12px 13px">
+  <div style="font-family:Inter,sans-serif;font-size:8px;letter-spacing:1.5px;
+              color:#A89878;margin-bottom:4px;text-transform:uppercase">
+    POSITIONEN
+  </div>
+  <div style="font-family:Inter,sans-serif;font-size:14px;color:#E8DEC9;
+              font-weight:600">12 / 44</div>
+  <div style="font-family:Inter,sans-serif;font-size:9px;color:#A89878;
+              margin-top:2px">offen</div>
+</div>
+
+<div style="background:#1A1610;padding:12px 13px">
+  <div style="font-family:Inter,sans-serif;font-size:8px;letter-spacing:1.5px;
+              color:#A89878;margin-bottom:4px;text-transform:uppercase">
+    SIEGRATE
+  </div>
+  <div style="font-family:Inter,sans-serif;font-size:14px;color:#E8DEC9;
+              font-weight:600">36.4%</div>
+  <div style="font-family:Inter,sans-serif;font-size:9px;color:#A89878;
+              margin-top:2px">4 / 11 cerrados</div>
+</div>
+
+<div style="background:#1A1610;padding:12px 13px">
+  <div style="font-family:Inter,sans-serif;font-size:8px;letter-spacing:1.5px;
+              color:#A89878;margin-bottom:4px;text-transform:uppercase">
+    ANGST · VIX
+  </div>
+  <div style="font-family:Inter,sans-serif;font-size:14px;color:#E8DEC9;
+              font-weight:600">19.23<span title="fuente secundaria activa" style="display:inline-block;width:6px;height:6px;background:#C9A96A;border-radius:50%;margin-left:6px;vertical-align:middle;opacity:0.85"></span></div>
+  <div style="font-family:Inter,sans-serif;font-size:9px;color:#A89878;
+              margin-top:2px">→ ruhig</div>
+</div>
+
+<div style="background:#1A1610;padding:12px 13px">
+  <div style="font-family:Inter,sans-serif;font-size:8px;letter-spacing:1.5px;
+              color:#A89878;margin-bottom:4px;text-transform:uppercase">
+    INFLATION · CPI
+  </div>
+  <div style="font-family:Inter,sans-serif;font-size:14px;color:#E8DEC9;
+              font-weight:600">3.3%</div>
+  <div style="font-family:Inter,sans-serif;font-size:9px;color:#A89878;
+              margin-top:2px">↑ 0.66%</div>
+</div>
+
+<div style="background:#1A1610;padding:12px 13px">
+  <div style="font-family:Inter,sans-serif;font-size:8px;letter-spacing:1.5px;
+              color:#A89878;margin-bottom:4px;text-transform:uppercase">
+    LEITZINS · FED
+  </div>
+  <div style="font-family:Inter,sans-serif;font-size:14px;color:#E8DEC9;
+              font-weight:600">3.64%</div>
+  <div style="font-family:Inter,sans-serif;font-size:9px;color:#A89878;
+              margin-top:2px">→ stabil</div>
+</div>
+
+</div>
+
+
+
+<div style="display:flex;justify-content:space-between;align-items:baseline;
+            margin:8px 0 10px 0">
+  <div><span style="font-family:Georgia,serif;font-size:16px;font-weight:600;color:#E8DEC9">Exemplare offen</span><span style="font-family:Inter,sans-serif;font-size:12px;font-style:italic;color:#A89878;margin-left:10px">posiciones abiertas hoy</span></div>
+  <div style="font-family:Inter,sans-serif;font-size:10px;letter-spacing:1.5px;
+              color:#A89878;text-transform:uppercase">
+    12 EXEMPLARE · NET <span style="color:#9BB37E">+$179</span>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+<div style="background:#1A1610;border:0.5px solid #3A3025;
+            border-left:2px solid #9BB37E;padding:11px 13px;margin-bottom:8px">
+  <div style="display:flex;justify-content:space-between;align-items:baseline">
+    <span style="font-family:Georgia,serif;font-size:14px;font-weight:600;
+                 color:#E8DEC9;letter-spacing:0.5px">HD</span>
+    <span style="font-family:Inter,sans-serif;font-size:13px;font-weight:600;
+                 color:#9BB37E">+$146.25</span>
+  </div>
+  <div style="font-family:Inter,sans-serif;font-size:9.5px;color:#A89878;
+              margin-top:3px;letter-spacing:0.4px">
+    15 @ $342.10 → $351.85 · +2.85%
+  </div>
+</div>
+
+<div style="background:#1A1610;border:0.5px solid #3A3025;
+            border-left:2px solid #9BB37E;padding:11px 13px;margin-bottom:8px">
+  <div style="display:flex;justify-content:space-between;align-items:baseline">
+    <span style="font-family:Georgia,serif;font-size:14px;font-weight:600;
+                 color:#E8DEC9;letter-spacing:0.5px">COP</span>
+    <span style="font-family:Inter,sans-serif;font-size:13px;font-weight:600;
+                 color:#9BB37E">+$130.00</span>
+  </div>
+  <div style="font-family:Inter,sans-serif;font-size:9.5px;color:#A89878;
+              margin-top:3px;letter-spacing:0.4px">
+    40 @ $108.20 → $111.45 · +3.00%
+  </div>
+</div>
+
+<div style="background:#1A1610;border:0.5px solid #3A3025;
+            border-left:2px solid #A86850;padding:11px 13px;margin-bottom:8px">
+  <div style="display:flex;justify-content:space-between;align-items:baseline">
+    <span style="font-family:Georgia,serif;font-size:14px;font-weight:600;
+                 color:#E8DEC9;letter-spacing:0.5px">MS</span>
+    <span style="font-family:Inter,sans-serif;font-size:13px;font-weight:600;
+                 color:#A86850">$-67.50</span>
+  </div>
+  <div style="font-family:Inter,sans-serif;font-size:9.5px;color:#A89878;
+              margin-top:3px;letter-spacing:0.4px">
+    25 @ $98.50 → $95.80 · -2.74%
+  </div>
+</div>
+
+<div style="background:#1A1610;border:0.5px solid #3A3025;
+            border-left:2px solid #9BB37E;padding:11px 13px;margin-bottom:8px">
+  <div style="display:flex;justify-content:space-between;align-items:baseline">
+    <span style="font-family:Georgia,serif;font-size:14px;font-weight:600;
+                 color:#E8DEC9;letter-spacing:0.5px">CVX</span>
+    <span style="font-family:Inter,sans-serif;font-size:13px;font-weight:600;
+                 color:#9BB37E">+$57.40</span>
+  </div>
+  <div style="font-family:Inter,sans-serif;font-size:9.5px;color:#A89878;
+              margin-top:3px;letter-spacing:0.4px">
+    35 @ $183.57 → $185.21 · +0.89%
+  </div>
+</div>
+
+<div style="background:#1A1610;border:0.5px solid #3A3025;
+            border-left:2px solid #A86850;padding:11px 13px;margin-bottom:8px">
+  <div style="display:flex;justify-content:space-between;align-items:baseline">
+    <span style="font-family:Georgia,serif;font-size:14px;font-weight:600;
+                 color:#E8DEC9;letter-spacing:0.5px">MSFT</span>
+    <span style="font-family:Inter,sans-serif;font-size:13px;font-weight:600;
+                 color:#A86850">$-54.40</span>
+  </div>
+  <div style="font-family:Inter,sans-serif;font-size:9.5px;color:#A89878;
+              margin-top:3px;letter-spacing:0.4px">
+    8 @ $428.10 → $421.30 · -1.59%
+  </div>
+</div>
+
+<div style="background:#1A1610;border:0.5px solid #3A3025;
+            border-left:2px solid #A86850;padding:11px 13px;margin-bottom:8px">
+  <div style="display:flex;justify-content:space-between;align-items:baseline">
+    <span style="font-family:Georgia,serif;font-size:14px;font-weight:600;
+                 color:#E8DEC9;letter-spacing:0.5px">ABBV</span>
+    <span style="font-family:Inter,sans-serif;font-size:13px;font-weight:600;
+                 color:#A86850">$-38.40</span>
+  </div>
+  <div style="font-family:Inter,sans-serif;font-size:9.5px;color:#A89878;
+              margin-top:3px;letter-spacing:0.4px">
+    12 @ $175.30 → $172.10 · -1.83%
+  </div>
+</div>
+</div>
+
+<div style="text-align:center;margin-top:8px;font-family:Georgia,serif;
+            font-style:italic;font-size:12px;color:#A89878">
+  + 6 más · ver protokoll completo →
+</div>
+
+
+<div style="margin-top:18px"></div>
+<div class="perf-grid">
+  <div><div style="font-family:Inter,sans-serif;font-size:9px;letter-spacing:2.5px;color:#A89878;margin-bottom:6px;text-transform:uppercase">— TÄGLICHE EQUITY · <span style="font-style:italic;text-transform:none;letter-spacing:0.5px">por día</span></div>
+<div style="background:#1A1610;border:0.5px solid #3A3025;padding:14px;height:240px">
+  <svg viewBox="0 0 400 180" preserveAspectRatio="none" style="width:100%;height:200px">
+    <defs><linearGradient id="dq" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9BB37E" stop-opacity="0.20"/>
+      <stop offset="1" stop-color="#9BB37E" stop-opacity="0"/>
+    </linearGradient></defs>
+    <line x1="0" y1="120" x2="400" y2="120" stroke="#3A3025" stroke-dasharray="2 4" stroke-width="0.5"/>
+    <polygon fill="url(#dq)" points="0,180 0,140 30,135 60,128 90,118 130,130 170,108 210,114 250,90 290,86 330,72 370,55 400,40 400,180"/>
+    <polyline fill="none" stroke="#9BB37E" stroke-width="1.4"
+              points="0,140 30,135 60,128 90,118 130,130 170,108 210,114 250,90 290,86 330,72 370,55 400,40"/>
+  </svg>
+</div>
+</div>
+  <div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px"><div style="font-family:Inter,sans-serif;font-size:9px;letter-spacing:2.5px;color:#A89878;margin-bottom:6px;text-transform:uppercase">— TÄGLICHER GEWINN · <span style="font-style:italic;text-transform:none;letter-spacing:0.5px">P&amp;L diario</span></div><div style="font-family:Inter,sans-serif;font-size:10px;letter-spacing:1.2px;color:#A89878;text-transform:uppercase">NET <span style="color:#A86850">$-90</span> · 4G / 7R</div></div>
+    
+<div style="background:#1A1610;border:0.5px solid #3A3025;padding:14px;height:240px">
+  <svg viewBox="0 0 400 200" preserveAspectRatio="none" style="width:100%;height:200px">
+    <line x1="0" y1="100" x2="400" y2="100" stroke="#3A3025" stroke-width="0.6"/>
+    <rect x="0" y="52" width="11" height="48" fill="#9BB37E"/><rect x="14" y="100" width="11" height="32" fill="#A86850"/><rect x="28" y="40" width="11" height="60" fill="#9BB37E"/><rect x="42" y="28" width="11" height="72" fill="#9BB37E"/><rect x="56" y="100" width="11" height="88" fill="#A86850"/><rect x="70" y="64" width="11" height="36" fill="#9BB37E"/><rect x="84" y="100" width="11" height="12" fill="#A86850"/><rect x="98" y="56" width="11" height="44" fill="#9BB37E"/><rect x="112" y="100" width="11" height="60" fill="#A86850"/><rect x="126" y="28" width="11" height="72" fill="#9BB37E"/><rect x="140" y="72" width="11" height="28" fill="#9BB37E"/><rect x="154" y="100" width="11" height="20" fill="#A86850"/><rect x="168" y="64" width="11" height="36" fill="#9BB37E"/><rect x="182" y="52" width="11" height="48" fill="#9BB37E"/><rect x="196" y="100" width="11" height="8" fill="#A86850"/><rect x="210" y="88" width="11" height="12" fill="#9BB37E"/><rect x="224" y="68" width="11" height="32" fill="#9BB37E"/><rect x="238" y="56" width="11" height="44" fill="#9BB37E"/><rect x="252" y="100" width="11" height="36" fill="#A86850"/><rect x="266" y="84" width="11" height="16" fill="#9BB37E"/><rect x="280" y="72" width="11" height="28" fill="#9BB37E"/><rect x="294" y="52" width="11" height="48" fill="#9BB37E"/><rect x="308" y="40" width="11" height="60" fill="#9BB37E"/><rect x="322" y="100" width="11" height="12" fill="#A86850"/><rect x="336" y="68" width="11" height="32" fill="#9BB37E"/><rect x="350" y="56" width="11" height="44" fill="#9BB37E"/><rect x="364" y="100" width="11" height="8" fill="#A86850"/><rect x="378" y="64" width="11" height="36" fill="#9BB37E"/>
+  </svg>
+</div>
+
+  </div>
+</div>
+
+
+<div style="display:flex;justify-content:space-between;align-items:baseline;
+            margin:18px 0 10px 0">
+  <div><span style="font-family:Georgia,serif;font-size:16px;font-weight:600;color:#E8DEC9">Module · Sechs Synapsen</span><span style="font-family:Inter,sans-serif;font-size:12px;font-style:italic;color:#A89878;margin-left:10px">los seis módulos del cerebro</span></div>
+  <div style="font-family:Inter,sans-serif;font-size:10px;letter-spacing:1.5px;
+              color:#9BB37E;text-transform:uppercase">
+    ● ALLE GESUND · 6/6
+  </div>
+</div>
+
+
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;
+            margin-bottom:14px">
+<div style="background:#1A1610;border:0.5px solid #3A3025;
+            border-left:2px solid #9BB37E;padding:11px 14px">
+  <div style="font-family:Inter,sans-serif;font-size:9px;letter-spacing:1.5px;
+              color:#A89878;margin-bottom:5px;text-transform:uppercase">
+    M1 · NACHRICHTEN
+  </div>
+  <div style="font-family:Georgia,serif;font-style:italic;font-size:11.5px;
+              color:#E8DEC9;line-height:1.5">
+    12 wires · sentiment +0.87
+  </div>
+</div>
+
+<div style="background:#1A1610;border:0.5px solid #3A3025;
+            border-left:2px solid #C9A96A;padding:11px 14px">
+  <div style="font-family:Inter,sans-serif;font-size:9px;letter-spacing:1.5px;
+              color:#A89878;margin-bottom:5px;text-transform:uppercase">
+    M2 · MAKRO-ANALYST
+  </div>
+  <div style="font-family:Georgia,serif;font-style:italic;font-size:11.5px;
+              color:#E8DEC9;line-height:1.5">
+    9/9 OK · konvergenz 87
+  </div>
+</div>
+
+<div style="background:#1A1610;border:0.5px solid #3A3025;
+            border-left:2px solid #9BB37E;padding:11px 14px">
+  <div style="font-family:Inter,sans-serif;font-size:9px;letter-spacing:1.5px;
+              color:#A89878;margin-bottom:5px;text-transform:uppercase">
+    M3 · RISIKO
+  </div>
+  <div style="font-family:Georgia,serif;font-style:italic;font-size:11.5px;
+              color:#E8DEC9;line-height:1.5">
+    stress 23/100 · niedrig
+  </div>
+</div>
+
+<div style="background:#1A1610;border:0.5px solid #3A3025;
+            border-left:2px solid #9BB37E;padding:11px 14px">
+  <div style="font-family:Inter,sans-serif;font-size:9px;letter-spacing:1.5px;
+              color:#A89878;margin-bottom:5px;text-transform:uppercase">
+    M4 · WALE
+  </div>
+  <div style="font-family:Georgia,serif;font-style:italic;font-size:11.5px;
+              color:#E8DEC9;line-height:1.5">
+    +7 institutionen kaufen
+  </div>
+</div>
+
+<div style="background:#1A1610;border:0.5px solid #3A3025;
+            border-left:2px solid #C9A96A;padding:11px 14px">
+  <div style="font-family:Inter,sans-serif;font-size:9px;letter-spacing:1.5px;
+              color:#A89878;margin-bottom:5px;text-transform:uppercase">
+    BOT · AUSFÜHRUNG
+  </div>
+  <div style="font-family:Georgia,serif;font-style:italic;font-size:11.5px;
+              color:#E8DEC9;line-height:1.5">
+    12/44 · zyklus 08:15:00
+  </div>
+</div>
+
+<div style="background:#1A1610;border:0.5px solid #3A3025;
+            border-left:2px solid #C9A96A;padding:11px 14px">
+  <div style="font-family:Inter,sans-serif;font-size:9px;letter-spacing:1.5px;
+              color:#A89878;margin-bottom:5px;text-transform:uppercase">
+    M5 · HIRN
+  </div>
+  <div style="font-family:Georgia,serif;font-style:italic;font-size:11.5px;
+              color:#E8DEC9;line-height:1.5">
+    memoria 412 · listo
+  </div>
+</div>
+</div>
+
+
+
+<div style="display:flex;justify-content:space-between;align-items:baseline;
+            margin:18px 0 10px 0">
+  <div><span style="font-family:Georgia,serif;font-size:16px;font-weight:600;color:#E8DEC9">Im Gespräch mit Hirn</span><span style="font-family:Inter,sans-serif;font-size:12px;font-style:italic;color:#A89878;margin-left:10px">conversa con el cerebro</span></div>
+  <div style="font-family:Inter,sans-serif;font-size:10px;letter-spacing:1.5px;
+              color:#A89878;text-transform:uppercase">
+    M5 · ASSISTANT · MEMORIA 412
+  </div>
+</div>
+
+
+<div class="bita-user-bubble">
+  /analisis CVX
+  <div class="bita-bubble-sig">DU · USUARIO</div>
+</div>
+
+<div class="bita-hirn-bubble">
+  CVX 35 acciones a $183.57 → ahora $185.21. Net +$57. La energía está cooperando. Mantengo.
+  <div class="bita-bubble-sig">M5.HIRN · MEMORIA</div>
+</div>
+
+
+<div style="background:#1A1610;border:0.5px solid #3A3025;padding:12px 14px;margin-top:8px;border-radius:2px">
+  <div style="font-family:Georgia,serif;font-style:italic;color:#A89878;font-size:13px">Pregúntale a Hirn — z.B. ¿qué hay en HD? · /analisis CVX · /mejoras · wie ist meine siegrate?</div>
+</div>
+<div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap"><span class="bita-pill">▸ ANÁLISIS</span><span class="bita-pill">▸ MEJORAS</span><span class="bita-pill">▸ SIEGRATE</span><span class="bita-pill">▸ WALE</span><span class="bita-pill">▸ ALERTAS</span><span class="bita-pill">▸ STRATEGIE</span><span class="bita-pill" style="background:#221C14;border-color:#C9A96A">ENVIAR →</span><span class="bita-pill">LIMPIAR</span></div>
+
+
+<div style="margin:22px 0 10px 0;border-top:0.5px solid #3A3025;
+            padding-top:14px">
+  <span style="font-family:Georgia,serif;font-size:14px;font-weight:600;color:#E8DEC9">Steuerung</span><span style="font-family:Inter,sans-serif;font-size:12px;font-style:italic;color:#A89878;margin-left:10px">controles</span>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+    <div style="background:#1A1610;border:0.5px solid #3A3025;
+                padding:10px 14px;text-align:center;
+                font-family:Inter,sans-serif;font-size:11px;letter-spacing:1.2px;
+                color:#E8DEC9;text-transform:uppercase;border-radius:2px">
+      ↻  AKTUALISIEREN · refrescar
+    </div>
+    <div style="background:#1A1610;border:0.5px solid #C9A96A;
+                padding:10px 14px;text-align:center;
+                font-family:Inter,sans-serif;font-size:11px;letter-spacing:1.2px;
+                color:#E8DEC9;text-transform:uppercase;border-radius:2px">
+      ⚡  ZYKLUS ERZWINGEN · forzar ciclo
+    </div>
+    <div style="background:#1A1610;border:0.5px solid #3A3025;
+                padding:10px 14px;text-align:center;
+                font-family:Inter,sans-serif;font-size:11px;letter-spacing:1.2px;
+                color:#E8DEC9;text-transform:uppercase;border-radius:2px">
+      📖  PROTOKOLL · ver bitácora completa
+    </div>
+    <div style="background:#1A1610;border:0.5px solid #3A3025;
+                padding:10px 14px;text-align:center;
+                font-family:Inter,sans-serif;font-size:11px;letter-spacing:1.2px;
+                color:#E8DEC9;text-transform:uppercase;border-radius:2px">
+      ☐ AUTO · 30S
+    </div></div>
+
+<div style="font-family:Inter,sans-serif;font-size:9px;letter-spacing:1.5px;color:#A89878;text-align:right;margin-top:14px;text-transform:uppercase">● indicador ámbar · 1 métrica(s) no-live · vix:fallback</div>
+
+
+<div class="bita-footer">
+  BÖRSENHIRN · CEREBRO BURSÁTIL · v1.0 · BITÁCORA NOCTURNA<br>
+  NOT FINANCIAL ADVICE · PAST PERFORMANCE ≠ FUTURE RETURNS · USE AT YOUR OWN RISK<br>
+  <a href="/legal/DISCLAIMER.md">DISCLAIMER</a> ·
+  <a href="/legal/TERMS.md">TERMS</a> ·
+  <a href="/legal/PRIVACY.md">PRIVACY</a>
+</div>
+
+
+</body></html>

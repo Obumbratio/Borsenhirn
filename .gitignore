@@ -39,6 +39,7 @@ Thumbs.db
 
 # Backups
 *.bak
+*.backup
 versions/
 backups/
 *.dump
@@ -54,3 +55,19 @@ pytest-cache-files-*/
 .streamlit/secrets.toml
 .env.dev
 .env.local
+
+# ── Blindaje extra (sistema de contexto/sync) ────────────
+# Cualquier .env queda fuera; solo .env.example es público.
+.env.*
+!.env.example
+# Llaves y certificados sueltos
+*.key
+*.pem
+# Bases de datos locales con datos reales
+*.sqlite
+*.db
+# Volcados de repo (pueden contener secretos)
+repomix-output.*
+# Frontend Next.js
+node_modules/
+.next/

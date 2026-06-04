@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Hook pre-commit: bloquea el commit si gitleaks detecta un secreto
+# en los archivos staged. Usa el allowlist de .gitleaks.toml.
+#
+# INSTALACIÓN (lo hace Uriel, una vez por máquina):
+#   cp scripts/git-hooks/pre-commit .git/hooks/pre-commit
+#   chmod +x .git/hooks/pre-commit
+#
+# Requiere gitleaks instalado en el PATH.
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "⚠  gitleaks no está instalado; me salto el escaneo (instálalo para protección real)."
+  exit 0
+fi
+
+gitleaks protect --staged -v --config .gitleaks.toml \
+  || { echo "✗ Secreto detectado. Commit bloqueado."; exit 1; }
