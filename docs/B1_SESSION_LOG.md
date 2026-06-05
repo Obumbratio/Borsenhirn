@@ -653,7 +653,9 @@ iteraciones (`PoolError`).
 Plan + decisiones en [B1_BLOCK8_PLAN.md](B1_BLOCK8_PLAN.md) (D-A consolidada,
 D-B openssl, D-D ventana OK, D-E verif completa, D-C restore a DB nueva).
 
-**Lado-IA (completado por Claude) — 5 artefactos:**
+**Lado-IA (completado por Claude) — 6 artefactos:**
+- [x] `scripts/b1_block8_backup.sh` — GATE 1: `pg_dump -F c` de prod con
+      confirmación + verificación (tamaño + `pg_restore --list`).
 - [x] `scripts/b1_block8_prod_migration.sql` — migración consolidada idempotente/
       atómica: default tenant, RENAME legacy→_legacy_*, tenant_id+FK+index,
       backfill+verify, NOT NULL, RLS enable+force+policies (GUC final), DEFAULT,

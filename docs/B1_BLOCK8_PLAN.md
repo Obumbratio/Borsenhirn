@@ -65,8 +65,9 @@ Artefactos a generar (cuando apruebes):
       policies). Si los hubiera, la migración idempotente los respeta.
 
 ### Paso 1 — Backup completo (CRÍTICO)
-- [ ] `pg_dump` de `borsenhirn` completo → `backups/prod_pre_b8_YYYYMMDD_HHMM.dump`.
-- [ ] Verificar el dump (tamaño > 0, `pg_restore --list` lo lee).
+- [ ] `bash scripts/b1_block8_backup.sh` → `pg_dump -F c` de `borsenhirn` a
+      `backups/prod_pre_b8_YYYYMMDD_HHMM.dump`, con confirmación y verificación
+      (tamaño + `pg_restore --list`) incluidas.
 - [ ] Branch/tag git de respaldo del código (ya existe `backup-pre-b1-20260426`).
 - **GATE 1:** sin backup verificado, NO se sigue.
 
