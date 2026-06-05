@@ -124,16 +124,18 @@ Artefactos a generar (cuando apruebes):
 
 ---
 
-## 6. Decisiones a confirmar antes de generar scripts
+## 6. Decisiones (CONFIRMADAS 2026-06-05)
 
-- **D-A:** ¿migración consolidada (recomendado) o replay de los 6 scripts adaptados?
-- **D-B:** ¿de dónde sale el password del rol prod? (openssl ad-hoc como en dev, o
-  ya del gestor de secrets del Bloque B2 si querés adelantarlo).
-- **D-C:** estrategia de restore en el peor caso: in-place vs DB nueva
-  `borsenhirn_restore`.
-- **D-D:** ¿hay ventana de mantenimiento / el bot puede estar detenido un rato?
-- **D-E:** ¿corremos las verificaciones de aislamiento contra prod con un tenant
-  de test (recomendado) o solo el smoke read-only?
+- **D-A ✅ Consolidada.** Una sola migración SQL idempotente/atómica con el estado final.
+- **D-B ✅ openssl ad-hoc.** Password del rol generado con openssl al momento, guardado
+  en el `.env` de prod (igual que dev). El gestor de secrets queda para B2.
+- **D-C → default seguro (no preguntado):** en el peor caso, restore a una DB nueva
+  `borsenhirn_restore`, validar, y recién entonces promover. NO in-place. (Marcar si se
+  prefiere otra cosa.)
+- **D-D ✅ Sí, se detiene el bot.** Hay ventana: parar el bot, migrar y verificar sin
+  escrituras concurrentes.
+- **D-E ✅ Verificación completa con tenant de test.** Correr 5.6/B6/B7 contra prod con
+  un tenant temporal (escrituras con rollback/teardown; el default no se toca).
 
 ---
 
