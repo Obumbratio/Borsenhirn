@@ -646,3 +646,32 @@ iteraciones (`PoolError`).
 **Estado:** Bloque 7 COMPLETO (capa DB, 2 bugs arreglados). Siguiente: Bloque 8
 (aplicar a prod, incluyendo la migración DEFAULT del Bloque 7).
 
+---
+
+### 2026-06-05 — Bloque 8: scripts de aplicación a prod GENERADOS (sin ejecutar)
+
+Plan + decisiones en [B1_BLOCK8_PLAN.md](B1_BLOCK8_PLAN.md) (D-A consolidada,
+D-B openssl, D-D ventana OK, D-E verif completa, D-C restore a DB nueva).
+
+**Lado-IA (completado por Claude) — 5 artefactos:**
+- [x] `scripts/b1_block8_prod_migration.sql` — migración consolidada idempotente/
+      atómica: default tenant, RENAME legacy→_legacy_*, tenant_id+FK+index,
+      backfill+verify, NOT NULL, RLS enable+force+policies (GUC final), DEFAULT,
+      verificación 17/17 intra-txn. Guard EXIGE `borsenhirn`.
+- [x] `scripts/b1_block8_apply.sh` — wrapper prod: triple guard (B1_ALLOW_PROD=1
+      + DB_NAME=borsenhirn + frase escrita "APLICAR A PROD"), recuerda el backup,
+      pre/post-state.
+- [x] `scripts/b1_block8_create_role.sql` + `.sh` — rol prod con openssl, valida
+      >=16 chars, smoke test, imprime las APP creds para el `.env` de prod.
+- [x] `scripts/b1_block8_verify.sh` — GATE 3: cobertura --strict, legacy archivadas,
+      smoke rol app, y write-isolation con tenant temporal (rollback, no persiste).
+- [x] `scripts/b1_block8_rollback.md` — casos 1/2a/2b/2c + restore a DB nueva.
+
+**Validación (sin tocar prod):** `bash -n` OK en los 3 wrappers; el guard del SQL
+aborta correctamente en dev; y el CUERPO completo del SQL se validó con un dry-run
+idempotente (copia con guard→dev) sobre `borsenhirn_dev`: 17/17 NOT NULL/RLS/FORCE,
+COMMIT, dev intacto (31 trades antes y después).
+
+**Pendiente (lo hace Uriel en la ventana):** backup de prod → `apply.sh` →
+`create_role.sh` → `verify.sh` → re-arranque `--once`. **Nada aplicado a prod aún.**
+
