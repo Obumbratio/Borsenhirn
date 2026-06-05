@@ -465,22 +465,23 @@ te avise.
 - [ ] Lectura del módulo: `borsenhirn/tenancy/__init__.py` exporta lo
       esperado.
 
-## Checklist Gap 4 fase B (cuando quieras lanzar SaaS)
+## Checklist Gap 4 fase B — ejecutada en el Sprint B1 (cierre: docs/B1_CLOSEOUT.md)
 
-- [ ] Crear rol Postgres `borsenhirn_app` con permisos mínimos (sin
-      BYPASSRLS).
-- [ ] Crear rol Postgres `borsenhirn_admin` con BYPASSRLS para CLI.
-- [ ] Aplicar `borsenhirn_enable_rls(...)` a las 8-10 tablas del bot.
-- [ ] Refactor de `bot_memory_pg.py` para usar `TenantContext` en cada
-      función.
-- [ ] Refactor de `borsenhirn/safety/state_store_pg.py` para kill
-      switches per-tenant.
-- [ ] Refactor de `borsenhirn/security/credentials.py` con `tenant_id`.
-- [ ] Tests de aislamiento real (no mocks) en CI.
-- [ ] `scripts/check_rls_coverage.py` que falle si una tabla nueva no
-      tiene RLS.
-- [ ] Auth (JWT/OAuth) que resuelve user → tenant_id en cada request.
-- [ ] Documentación de deployment con dos roles DB separados.
+- [x] Crear rol Postgres `borsenhirn_app` con permisos mínimos (sin
+      BYPASSRLS). _(Bloque 5.2)_
+- [~] Rol admin con BYPASSRLS: se usa el superuser `postgres` para admin/
+      migraciones; no se creó un `borsenhirn_admin` aparte. _(decisión)_
+- [x] Aplicar RLS a las tablas del bot → **17 tablas** con tenant_id+FK+
+      index+RLS forzado+policies. _(Bloques 2–4.5)_
+- [x] Refactor de `bot_memory_pg.py` con tenant context. _(5.4.a)_
+- [x] Refactor de `borsenhirn/safety/state_store_pg.py`. _(5.4.c)_
+- [x] Refactor de `borsenhirn/security/credentials.py` con `tenant_id`. _(5.4.b)_
+- [x] Tests de aislamiento real (no mocks) → 16 tests de integración. _(5.6/B6/B7)_
+- [x] `scripts/check_rls_coverage.py --strict` (17/17, falla si falta RLS).
+- [ ] Auth (JWT/OAuth) que resuelve user → tenant_id. _(queda para B3 — Clerk)_
+- [x] Deployment con roles separados documentado. _(B1_APP_LAYER.md §2)_
+
+> Pendiente operativo: aplicar todo a producción (Bloque 8, scripts generados).
 
 ---
 

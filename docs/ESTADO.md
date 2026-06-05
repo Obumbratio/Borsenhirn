@@ -6,10 +6,11 @@
 2026-06-05
 
 ## Dónde voy
-Sprint B1 multi-tenancy Phase B · **Bloques 5, 6 y 7 COMPLETOS** · branch `feature/multi-tenancy-phase-b`
-Próxima acción: **ejecutar Bloque 8** (aplicar a prod). Los 5 scripts ya están
+Sprint B1 multi-tenancy Phase B · **DEV-COMPLETE** (Bloques -1..7 + 9) · branch `feature/multi-tenancy-phase-b`
+Única acción pendiente: **ejecutar Bloque 8** (aplicar a prod). Los 6 scripts están
 generados y validados (dry-run idempotente sobre dev OK), esperando la ventana de
-mantenimiento. **Nada aplicado a prod todavía.** Plan: [B1_BLOCK8_PLAN.md](B1_BLOCK8_PLAN.md).
+mantenimiento. **Nada aplicado a prod todavía.**
+Cierre del sprint: [B1_CLOSEOUT.md](B1_CLOSEOUT.md) · Plan prod: [B1_BLOCK8_PLAN.md](B1_BLOCK8_PLAN.md).
 
 ## Estado del Bloque 5 (refactor capa de app)
 | Sub-bloque | Qué | Estado | Commit |

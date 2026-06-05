@@ -677,3 +677,20 @@ COMMIT, dev intacto (31 trades antes y después).
 **Pendiente (lo hace Uriel en la ventana):** backup de prod → `apply.sh` →
 `create_role.sh` → `verify.sh` → re-arranque `--once`. **Nada aplicado a prod aún.**
 
+---
+
+### 2026-06-05 — Bloque 9: cierre del sprint ✅
+
+**Lado-IA (completado por Claude):**
+- [x] `docs/B1_CLOSEOUT.md` — síntesis del sprint: resultado, entregables por
+      bloque, estado final, los 2 bugs que destapó el e2e, métricas (18 commits,
+      267+16 tests, ~1.6k SQL), lo que queda (ejecutar B8 + roadmap B2..B10), y
+      línea de CV. No duplica PLAN/APP_LAYER/este log.
+- [x] Sync de cierre: `CLAUDE.md` (dev-complete), `docs/00_INDEX.md`,
+      `docs/ESTADO.md`, y la checklist Fase B de `MULTI_TENANCY.md` marcada
+      contra lo realmente ejecutado.
+
+**Estado del Sprint B1:** **DEV-COMPLETE.** Bloques -1..7 hechos y testeados, 8
+generado (pendiente de ejecutar en prod), 9 cerrado. Única acción restante para
+"misión cumplida": correr el Bloque 8 en la ventana de mantenimiento.
+

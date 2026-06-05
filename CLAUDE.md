@@ -5,8 +5,9 @@ Plataforma de inteligencia financiera (6 módulos) en comercialización
 SaaS — Modelo A (BYO Alpaca broker).
 
 ## Dónde voy ahora
-Sprint B1 multi-tenancy Phase B, ~90% (Bloque 5 capa app hecho; siguiente:
-5.6 tests integración RLS). Branch: feature/multi-tenancy-phase-b
+Sprint B1 multi-tenancy Phase B: **dev-complete** (Bloques -1..7 hechos y testeados).
+Falta ejecutar el Bloque 8 (aplicar a prod, scripts ya generados) en una ventana.
+Cierre del sprint en docs/B1_CLOSEOUT.md. Branch: feature/multi-tenancy-phase-b
 
 ## Stack
 FastAPI + Python 3.13 · PostgreSQL 18 con RLS · Next.js 14 + TS + Tailwind
