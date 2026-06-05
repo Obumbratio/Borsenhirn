@@ -330,3 +330,263 @@ ahora propaga stderr y devuelve exit code claro.
 - Tablas vacías que igual reciben SET NOT NULL: bot_ml_metrics,
   daily_reports, killswitch_state, signals, trades, user_credentials.
 
+### 2026-04-26 — Bloque 3: CERRADO ✅
+
+**Resultado del run en `borsenhirn_dev`:**
+- Backfill exacto de **128 filas** al default tenant `00000000-...001`,
+  match perfecto al pronóstico: 31 bot_trade_outcomes, 21 bot_symbol_scores,
+  17 bot_daily_state, 12 bot_entry_context, 12 bot_entry_prices,
+  12 bot_performance, 12 assistant_history, 4 bot_ml_training,
+  3 bot_regime_stats, 3 alerts_log, 1 assistant_suggestions.
+- Verify NULL = 0 pasó en las 17 tablas (sin `RAISE EXCEPTION`).
+- `SET NOT NULL` aplicado a las 17 (las 6 vacías recibieron NOT NULL
+  preventivo: bot_ml_metrics, daily_reports, killswitch_state,
+  signals, trades, user_credentials).
+
+**Garantía:** idempotente — re-run no reasigna nada (UPDATE filtra
+`WHERE tenant_id IS NULL`).
+
+---
+
+### 2026-04-26 — Bloque 4: RLS policies
+
+**Lado-IA (completado por Claude):**
+- [x] `scripts/b1_block4_migration.sql` + `b1_block4_apply.sh` —
+      `ENABLE ROW LEVEL SECURITY` + `FORCE ROW LEVEL SECURITY` en las
+      17 tablas A, con 2 policies PERMISSIVE por tabla:
+      - `tenant_isolation`: filas visibles solo si
+        `tenant_id = current_setting(<guc>)::uuid`.
+      - `admin_bypass`: acceso total si
+        `current_setting('app.bypass_rls') = 'on'`.
+
+**Lado-usuario (Uriel):**
+- [x] Revisó y aplicó la migración.
+- [x] **Catch crítico:** detectó que el Bloque 4 usó el GUC
+      `app.current_tenant` mientras el módulo existente `tenancy/db.py`
+      (Fase A) ya usaba `app.current_tenant_id`. Decidió **alinear la DB
+      al código existente** (no al revés). → motivó el Bloque 4.5.
+
+---
+
+### 2026-04-26 — Bloque 4.5: rename del GUC ✅
+
+**Lado-IA (completado por Claude):**
+- [x] `scripts/b1_block4_5_rename_guc.sql` + `b1_block4_5_apply.sh` —
+      DROP + CREATE de las 34 policies usando el GUC canónico
+      `app.current_tenant_id`.
+
+**Resultado / verificación final:**
+- 17/17 RLS enabled · 17/17 RLS forced · 17/17 `tenant_isolation` ·
+  17/17 `admin_bypass`.
+- GUC unificado en `app.current_tenant_id` en DB y código.
+
+---
+
+### 2026-04-27 — Bloque 5.1: Foundation ✅ (commit `f02002d`)
+
+- [x] `borsenhirn/tenancy/constants.py` como source of truth de UUIDs:
+      - `SYSTEM_TENANT_ID` = `00000000-...000` (sentinel cross-cutting,
+        NO existe como fila — reservado para data shared global futura).
+      - `DEFAULT_TENANT_UUID` = `00000000-...001` (tenant real del
+        backfill, dueño de las 128 filas legacy hasta que llegue auth B3).
+- [x] Reexports preservan contratos existentes. 31 tests de tenancy OK.
+
+---
+
+### 2026-04-27 — Bloque 5.2: rol Postgres + GUC ✅ (DB-only)
+
+**Lado-IA:**
+- [x] `scripts/b1_block5_create_role.sql` + `b1_block5_create_role.sh` —
+      rol `borsenhirn_app` con `LOGIN NOSUPERUSER NOBYPASSRLS NOCREATEDB`.
+      GRANTs: CONNECT en DB, USAGE en schema, CRUD en las 17 tablas A,
+      **SELECT-only en `tenants`** (lifecycle es admin), USAGE,SELECT en
+      sequences. Verificación que **aborta** si BYPASSRLS/SUPERUSER están
+      seteados o si tiene INSERT en `tenants`. Wrapper pide password
+      silencioso, valida >=16 chars, smoke test conectando como el rol.
+- [x] `config.py` lee `APP_DB_USER` + `APP_DB_PASSWORD` con fallback a
+      admin (preserva single-user dev sin setup extra).
+
+**Lección (psql):** `:'var'` no se sustituye dentro de `DO` blocks.
+Primer intento falló con syntax error. Solución: `\if/\gset` con
+CREATE/ALTER ROLE en SQL plano.
+
+---
+
+### 2026-04-27 — Bloque 5.3: `borsenhirn/db.py` ✅ (commit `f02002d`)
+
+- [x] Módulo nuevo top-level. API pública:
+      - `get_app_pool()` / `get_admin_pool()` — pools lazy (no abren al import).
+      - `get_conn(role='app')` — context manager del pool correcto.
+      - `set_tenant` — alias de `TenantContext` (sintaxis user-friendly).
+      - `bypass_rls(conn)` — context manager para admin cross-tenant.
+      - `set_connection_factory()` — hook para tests que monkeypatchean.
+- [x] Rollback automático si quedó txn abierta sin commit.
+- [x] Cero callers (módulo inerte). pytest 267 passed.
+
+---
+
+### 2026-04-28 — Bloque 5.4: refactor de los 3 módulos de persistencia
+
+- [x] **5.4.a `bot_memory_pg.py`** (commit `8ea2bb6`): constructor
+      acepta `tenant_id = DEFAULT_TENANT_UUID`; elimina pool propio
+      (`_get_pool`, `_get_conn`, `_pool` global); `_db()` ahora va por
+      `bdb.get_conn(role='app')` + `set_tenant`. Bootstrap DDL usa pool
+      **admin** (CREATE TABLE no permitido al rol app). 27 métodos
+      públicos sin cambio estructural.
+- [x] **5.4.b `borsenhirn/security/credentials.py`** (commit `72ee927`):
+      constructor `tenant_id: Optional = None` (default None preserva
+      backwards compat de 24 tests que mockean); helper `_scoped_cursor`
+      envuelve cursor con TenantContext si hay tenant; los 6 métodos lo usan.
+- [x] **5.4.c `borsenhirn/safety/state_store_pg.py`** (commit `64321ce`):
+      mismo patrón. `PostgresStateStore` + `make_dashboard_db_write`
+      aceptan tenant_id opcional. `ks_admin.py` no requiere cambios
+      (default None).
+- pytest se mantuvo en 267 passed durante los 3 refactors.
+
+**Lección:** `tenant_id=None` por default fue la red de seguridad —
+protegió cobertura desigual y backwards compat sin riesgo.
+
+---
+
+### 2026-04-29 — Bloque 5.5.b: bootstrap.py + api/main.py ✅ (commit `5678d24`)
+
+- [x] `SafetyStack.init_from_config(get_conn_fn, tenant_id=None)` propaga
+      tenant a `PostgresStateStore` y `make_dashboard_db_write`. Docstring
+      actualizado con ejemplo usando `bdb.get_app_pool()`.
+- [x] `api/main.py` recibe TODO comment para wire-up futuro de Clerk JWT
+      (out of scope hasta Bloque B3 del roadmap SaaS).
+- [x] Health check script read-only agregado (commit entre 5.5.b y 5.5.a).
+
+---
+
+### 2026-04-29 — Bloque 5.5.a: main.py ✅ (commit `e6fec1a`)
+
+**Bug latente importante detectado en plan-only mode (ANTES de tocar nada):**
+`main.py:14` importaba `from bot_memory_pg import BotMemory, _get_conn`,
+pero `_get_conn` ya no existía desde 5.4.a. Ningún test importa `main.py`,
+así que el `ImportError` no aparecía en pytest, pero el bot real fallaba al
+startup.
+
+**Fix (5 cambios):**
+1. Elimina `_get_conn` del import.
+2. Agrega imports de `bdb` y `DEFAULT_TENANT_UUID`.
+3. Helper local `_safety_get_conn()` que devuelve conn del app pool.
+4. `memory = BotMemory(tenant_id=DEFAULT_TENANT_UUID)`.
+5. `safety = SafetyStack.init_from_config(_safety_get_conn, tenant_id=DEFAULT_TENANT_UUID)`.
+
+**Verificación:** `python -c "import main"` OK · pytest 267 passed.
+Registrado también en `docs/ERRORES.md`.
+
+**Lección (Write tool):** `main.py` (637 líneas) se editó con Edits
+incrementales, no Write monolítico — Write trunca archivos >500 líneas.
+
+---
+
+### Estado al cierre de 5.5.a — Bloque 5 al ~90%
+
+Hecho: 5.1–5.5 ✅. **Pendiente: 5.6** (tests integración RLS end-to-end con
+el rol `borsenhirn_app` real, sin BYPASSRLS) y **5.7** (docs `B1_APP_LAYER.md`
++ cierre de log). Detalle del plan de 5.6 en [ESTADO.md](ESTADO.md).
+Misión y decisiones de fondo en [PLAN.md](PLAN.md).
+
+---
+
+### 2026-06-05 — Bloque 5.6: tests de integración RLS ✅ (sin commit aún)
+
+**La prueba final del sprint: RLS aisla de verdad con el rol app real
+(NOSUPERUSER + NOBYPASSRLS), no con superuser.**
+
+**Lado-IA (completado por Claude):**
+- [x] `tests/test_b1_rls_integration.py` — 6 tests sobre `bot_trade_outcomes`:
+      guard de rol no-privilegiado + tabla de verdad (sin contexto→0,
+      default→31, tenant ajeno→0, bypass_rls→31) + teardown. Se auto-salta
+      si `DB_NAME != borsenhirn_dev` (defensa anti-prod, `allow_module_level`).
+- [x] `tests/conftest.py` — hook `pytest_collection_modifyitems` que salta
+      los tests `@pytest.mark.integration` salvo `RUN_DB_INTEGRATION=1`.
+      Mantiene la baseline verde y evita golpear cualquier DB por accidente.
+- [x] `scripts/b1_block4_test_isolation.sh` — equivalente bash puro (psql,
+      sin pytest), READ-ONLY, conecta como rol app, se niega fuera de
+      `borsenhirn_dev`. Self-validating: deriva el conteo "verdad" vía
+      `admin_bypass` y compara.
+
+**Bug encontrado y arreglado durante el run:** el check de rol en el script
+usaba `rolsuper::int || rolbypassrls::int`; en Postgres `||` sobre enteros no
+es concatenación → `operator does not exist: integer || integer`. Fix: cast a
+texto (`::int::text`).
+
+**Resultado verificado contra `borsenhirn_dev`:**
+- `bash scripts/b1_block4_test_isolation.sh` → 5/5 checks PASS, exit 0.
+- `RUN_DB_INTEGRATION=1 pytest tests/test_b1_rls_integration.py` → 6 passed.
+- Baseline sin env → **267 passed, 56 skipped** (era 55; +1 = los 6 de 5.6
+  saltados por default). Aislamiento confirmado end-to-end.
+
+**Pendiente:** commit de los 3 artefactos + docs. Luego 5.7 (docs de cierre).
+
+---
+
+### 2026-06-05 — Bloque 5.7: docs de cierre + Bloque 5 COMPLETO ✅ (sin commit aún)
+
+**Lado-IA (completado por Claude):**
+- [x] `docs/B1_APP_LAYER.md` — doc de referencia de la capa de app post-B1:
+      regla de oro (todo runtime por `borsenhirn/db.py` con tenant context),
+      los 2 roles/pools, API de `db.py`, contrato de los 3 módulos de
+      persistencia + wire-up, checklist para agregar tabla/módulo nuevo, cómo
+      correr los tests de 5.6, y gotchas conocidos. No duplica MULTI_TENANCY.md
+      (diseño), PLAN.md (decisiones) ni este log (cronología).
+- [x] Indexado en `docs/00_INDEX.md`.
+
+**Gotcha resuelto en el acto:** `config.py` leía `DB_PASSWORD` (default
+`"uriel"`) pero `.env.dev` define `DB_PASS` → el pool **admin** y 7 scripts
+admin tomaban el fallback. Fix: `config.py` ahora acepta `DB_PASS` como alias
+(`getenv("DB_PASSWORD") or getenv("DB_PASS") or "uriel"`). Verificado:
+3 casos de precedencia OK, baseline 267 passed, y el pool admin conecta como
+`postgres@borsenhirn_dev`. Detalle en `docs/B1_APP_LAYER.md` §7.
+
+**Estado del Bloque 5:** 5.1–5.7 ✅. **Bloque 5 (refactor de la capa de app)
+COMPLETO.** El sprint B1 queda funcionalmente probado: RLS aísla end-to-end con
+el rol no-privilegiado real.
+
+**Siguiente:** Bloque 6 (tests amplios) → 7 (bot e2e contra `borsenhirn_dev`)
+→ 8 (aplicar a prod `borsenhirn` con backup; legacy se RENAME no DROP)
+→ 9 (docs final).
+
+---
+
+### 2026-06-05 — Bloque 6: tests amplios de aislamiento ✅ (sin commit aún)
+
+Cubre la checklist "Tests obligatorios antes de mergear fase B" de
+`MULTI_TENANCY.md` (el #3 FORCE-sin-contexto ya estaba en 5.6).
+
+**Lado-IA (completado por Claude):**
+- [x] `tests/test_b1_rls_isolation_full.py` — 7 tests integration, gated igual
+      que 5.6, TODOS transaccionales (rollback → dev intacto):
+      1. INSERT con tenant correcto funciona.
+      2. INSERT cross-tenant rechazado (WITH CHECK, SQLSTATE 42501).
+      3. UPDATE cross-tenant rechazado (42501).
+      4. Aggregations (COUNT/SUM) respetan RLS.
+      5. FK ON DELETE RESTRICT (admin) — ver hallazgo abajo.
+      6. Dos tenants reales: B ve solo lo suyo, default sigue en 31
+         (tenant B temporal creado vía admin + borrado en teardown).
+      7. Cobertura: toda tabla con `tenant_id` (excepto `tenants`) tiene
+         RLS enabled+forced+>=2 policies.
+
+**Hallazgo (test #5):** `ON DELETE` sobre un tenant con filas devuelve SQLSTATE
+**`23001` restrict_violation**, no `23503` foreign_key_violation. Confirma que el
+FK es genuinamente `ON DELETE RESTRICT` (no un `NO ACTION`). Aserción ajustada.
+
+**Hallazgo menor (doc):** el tenant SYSTEM `…000` **sí existe como fila** en
+`tenants` (lo creó la migración de Fase A), pero el comentario en
+`borsenhirn/tenancy/constants.py` dice "NO debe existir como fila". Inconsistencia
+de comentario, no de datos. Pendiente de decidir: corregir el comentario o el
+estado. No bloquea.
+
+**Verificación contra `borsenhirn_dev`:**
+- `pytest tests/test_b1_rls_isolation_full.py` → 7 passed.
+- 5.6 + B6 juntos → 13 passed.
+- `check_rls_coverage.py --strict` → 17/17 con RLS, 0 sin RLS, exit 0.
+- Baseline sin env → **267 passed, 57 skipped**.
+- Post-run: tenant B borrado (0), `bot_trade_outcomes` sigue en 31 — los
+  rollbacks dejaron dev intacto.
+
+**Estado:** Bloque 6 COMPLETO. Siguiente: Bloque 7 (bot run e2e contra dev).
+

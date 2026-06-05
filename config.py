@@ -179,7 +179,10 @@ DB_NAME     = os.getenv("DB_NAME", "borsenhirn")
 # Used ONLY by scripts/ migrations and TenantManager (admin lifecycle).
 # RUNTIME code must NOT use these — it routes through APP_DB_USER below.
 DB_USER     = os.getenv("DB_USER", "postgres")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "uriel")
+# Acepta DB_PASS como alias de DB_PASSWORD: varios .env (incl. .env.dev) y
+# borsenhirn/core/* usan DB_PASS. Sin esto, el pool admin y los scripts admin
+# (ks_admin, rotate_master_key, check_rls_coverage, etc.) tomaban el fallback.
+DB_PASSWORD = os.getenv("DB_PASSWORD") or os.getenv("DB_PASS") or "uriel"
 
 # Application credentials (B1 Sprint - Block 5).
 # Role borsenhirn_app is NOSUPERUSER + NOBYPASSRLS + LOGIN.

@@ -191,3 +191,22 @@ def sanity_checker():
         wash_trade_min_gap_sec=300,
         watchlist_required=True,
     ))
+
+
+# ────────────────────────────────────────────────────────────────
+# Gate de tests de integración con DB real (B1 5.6)
+# ────────────────────────────────────────────────────────────────
+# Los tests marcados `@pytest.mark.integration` tocan Postgres real y NO
+# corren en la suite normal. Se saltan salvo que se setee RUN_DB_INTEGRATION.
+# Esto mantiene la baseline verde y, sobre todo, evita golpear cualquier DB
+# por accidente en CI o en un run distraído.
+def pytest_collection_modifyitems(config, items):
+    if os.getenv("RUN_DB_INTEGRATION"):
+        return
+    skip_db = pytest.mark.skip(
+        reason="integración con DB real: setear RUN_DB_INTEGRATION=1 "
+               "(y `source .env.dev`) para correr"
+    )
+    for item in items:
+        if "integration" in item.keywords:
+            item.add_marker(skip_db)

@@ -174,14 +174,15 @@ class Tenant:
 ### `TenantContext` (context manager)
 
 ```python
+# Contrato actual (Sprint B1): la conexión va por borsenhirn/db.py.
 from borsenhirn.tenancy import TenantContext
-from bot_memory_pg import _get_conn
+import borsenhirn.db as bdb
 
-conn = _get_conn()
-with TenantContext(conn, "user-uuid-123"):
-    with conn.cursor() as cur:
-        cur.execute("SELECT * FROM trades")  # solo trades del tenant
-        rows = cur.fetchall()
+with bdb.get_conn(role="app") as conn:        # antes: _get_conn() de bot_memory_pg (eliminado)
+    with TenantContext(conn, "user-uuid-123"):
+        with conn.cursor() as cur:
+            cur.execute("SELECT * FROM trades")  # solo trades del tenant
+            rows = cur.fetchall()
 ```
 
 Soporta anidamiento (útil para admin que actúa "como" otro tenant
@@ -282,6 +283,23 @@ pytest tests/test_tenancy_tenant.py tests/test_tenancy_db.py tests/test_tenancy_
 ---
 
 ## Fase B — plan de migración (futuro)
+
+> ⚠️ **NOTA 2026-06-05 — esta sección es el PLAN ORIGINAL, ya superado por la
+> implementación real (Sprint B1, branch `feature/multi-tenancy-phase-b`, ~90%).**
+> El contrato de código actual **difiere** de los snippets de abajo:
+> - El pool y `_get_conn` de `bot_memory_pg.py` **fueron eliminados**. La conexión
+>   ahora va por `borsenhirn/db.py` → `get_conn(role='app')` + `set_tenant`.
+>   **No importes `_get_conn` de `bot_memory_pg`** (ya no existe; causó un bug
+>   latente en `main.py` — ver `docs/ERRORES.md`).
+> - El tenant del bot legacy es `DEFAULT_TENANT_UUID` (`00000000-…001`), **no**
+>   `SYSTEM_TENANT_ID` (`…000`). El SYSTEM es un sentinel sin fila, reservado para
+>   data shared global futura. Ambos viven en `borsenhirn/tenancy/constants.py`.
+> - Los 3 módulos refactoreados (`bot_memory_pg`, `security/credentials`,
+>   `safety/state_store_pg`) usan `tenant_id` como parámetro de constructor.
+>
+> Cronología real en [`docs/B1_SESSION_LOG.md`](docs/B1_SESSION_LOG.md);
+> decisiones en [`docs/PLAN.md`](docs/PLAN.md). Los snippets de abajo se conservan
+> como referencia histórica del diseño.
 
 ### Estrategia conservadora: backfill + RLS gradual
 

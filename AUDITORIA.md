@@ -27,6 +27,12 @@
 
 ### R-1. `.env.example` contiene un Discord webhook URL real
 
+> **✅ RESUELTO 2026-06-05.** `.env.example:41` ya es `DISCORD_WEBHOOK_URL=`
+> (vacío). `.gitignore` cubre `.env.*` con excepción `!.env.example`.
+> Verificado en todo el historial (`git log --all -p -- .env.example`): el
+> token real **nunca se commiteó**, así que no hubo exposición en GitHub.
+> No requiere rotación. (Texto original abajo, como referencia histórica.)
+
 **Archivo:** `.env.example` línea 29.
 
 **Qué pasa:** la línea
@@ -55,11 +61,15 @@ sea una vez, ya está comprometido.
 
 ### R-2. Tres docs referencian archivos que no existen
 
+> **✅ RESUELTO 2026-06-05.** Los 2 scripts faltantes **ya fueron creados**
+> (`scripts/check_rls_coverage.py` y `scripts/ks_admin.py` existen en el repo,
+> opción (a) del fix) y el typo de `TESTS.md` ya está corregido. R-2 cerrado.
+
 | Doc | Archivo mencionado | Realidad |
 |---|---|---|
-| `MULTI_TENANCY.md` | `scripts/check_rls_coverage.py` | NO existe |
-| `INTEGRACION_SAFETY.md` | `scripts/ks_admin.py` | NO existe |
-| `TESTS.md` | `borsenhirn/safety/validation.py` | typo — debería ser `borsenhirn/ml/validation.py` |
+| `MULTI_TENANCY.md` | `scripts/check_rls_coverage.py` | ✅ creado (2026-06-05) |
+| `INTEGRACION_SAFETY.md` | `scripts/ks_admin.py` | ✅ creado (2026-06-05) |
+| `TESTS.md` | `borsenhirn/ml/validation.py` | ✅ ya corregido — `TESTS.md` apunta al path correcto y el archivo existe |
 
 **Por qué importa:** alguien siguiendo la doc para administrar el bot
 (ej. activar HALT manual con `ks_admin.py`) tropieza con un script que
