@@ -6,9 +6,10 @@
 2026-06-05
 
 ## Dónde voy
-Sprint B1 multi-tenancy Phase B · **Bloques 5 y 6 COMPLETOS** · branch `feature/multi-tenancy-phase-b`
-Próxima acción: **Bloque 7** (bot run end-to-end contra `borsenhirn_dev`) → 8 (aplicar a prod).
-Bloque 6: tests amplios de aislamiento RLS (escritura + 2 tenants + cobertura 17/17).
+Sprint B1 multi-tenancy Phase B · **Bloques 5, 6 y 7 COMPLETOS** · branch `feature/multi-tenancy-phase-b`
+Próxima acción: **Bloque 8** (aplicar a prod) — PERO antes resolver el hallazgo abierto
+del pool-leak de la safety stack (ver abajo). Bloque 7 destapó y arregló un bug de
+INSERT sin tenant_id (migración DEFAULT en las 17 tablas).
 
 ## Estado del Bloque 5 (refactor capa de app)
 | Sub-bloque | Qué | Estado | Commit |
@@ -32,8 +33,15 @@ Bloque 6: tests amplios de aislamiento RLS (escritura + 2 tenants + cobertura 17
 - Bug latente arreglado: `main.py` importaba `_get_conn` borrado en 5.4.a → `import main` OK.
 
 ## Qué falta para "misión cumplida"
-Bloque 7 (bot e2e contra `borsenhirn_dev`)
-→ **Bloque 8 (aplicar a prod `borsenhirn` con backup; legacy se RENAME no DROP)** → Bloque 9 (docs final).
+Resolver pool-leak de safety (hallazgo B7) → **Bloque 8 (aplicar a prod `borsenhirn`
+con backup; legacy se RENAME no DROP — incluir la migración DEFAULT del Bloque 7)** → Bloque 9 (docs final).
+
+## Hallazgo ABIERTO (B7) — pool-leak en safety stack
+`PostgresStateStore.get/set/list_active` sacan conn con `self.get_conn()` y NUNCA la
+devuelven al pool; `main._safety_get_conn` hace `get_app_pool().getconn()`. Cada
+`is_halted()` filtra una conn → el bot agota el pool (max 10) tras ~10 iteraciones del
+loop. No bloquea los tests (pocas ops + `close_all_pools`), pero **rompe un run real
+largo**. Fix pendiente de decidir (devolver conn al pool / usar context manager).
 
 ## Métricas
 - pytest baseline: **267 passed, 57 skipped** (los módulos de integración 5.6 +

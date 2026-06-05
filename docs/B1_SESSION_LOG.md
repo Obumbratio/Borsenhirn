@@ -590,3 +590,47 @@ estado. No bloquea.
 
 **Estado:** Bloque 6 COMPLETO. Siguiente: Bloque 7 (bot run e2e contra dev).
 
+---
+
+### 2026-06-05 — Bloque 7: bot e2e (capa DB) ✅ + bug destapado y arreglado
+
+Alcance elegido: **e2e de la capa DB** (no el loop completo). Ejercita
+`BotMemory` y `SafetyStack` tal como `main.run()` los construye, contra
+`borsenhirn_dev` con el rol app bajo RLS, sin red ni Alpaca. Todo bajo un
+TENANT DE TEST temporal (`…00e7`) borrado en teardown.
+
+**Lado-IA (completado por Claude):**
+- [x] `tests/test_b1_bot_e2e.py` — 3 tests: round-trips de BotMemory
+      (trade outcome, symbol score, daily state, ml metrics, entry price,
+      log_summary), aislamiento (lo escrito por el tenant de test no toca el
+      default, que sigue en 31), y kill switch read/write vía SafetyStack.
+
+**🐛 Bug sistémico destapado (lo que B7 venía a buscar):** los ~17 INSERT de
+los 3 módulos refactoreados (`bot_memory_pg` x14, `state_store_pg` x2,
+`credentials` x1) **NO incluían `tenant_id`**. El refactor 5.4 agregó el
+contexto de tenant (setea el GUC) pero no la columna en los INSERT → tenant_id
+quedaba NULL → la policy WITH CHECK lo rechazaba (42501). Ningún test anterior
+lo vio: los unit tests mockean la DB y el bot nunca había corrido e2e. Las
+lecturas funcionaban (filtro USING), solo fallaban las escrituras.
+
+**Fix (opción DB DEFAULT, elegida por Uriel):**
+- [x] `scripts/b1_block7_default_migration.sql` — idempotente, atómica, guard
+      anti-prod. `ALTER COLUMN tenant_id SET DEFAULT
+      NULLIF(current_setting('app.current_tenant_id', true), '')::uuid` en las
+      17 tablas. Cualquier INSERT que omita tenant_id hereda el tenant de
+      sesión; WITH CHECK sigue validando. Cero cambios en Python.
+- [x] Aplicada a `borsenhirn_dev`: 17/17 tablas con default. e2e → 3 passed.
+- [ ] **Pendiente Bloque 8:** incluir esta migración en el apply a prod.
+
+**Verificación:** e2e 3 passed · integración total (5.6+B6+B7) 16 passed ·
+baseline 267 passed · dev intacto (default 31, 0 tenants de test residuales).
+
+**⚠️ Hallazgo ABIERTO — pool-leak en safety stack:** `PostgresStateStore`
+saca conns con `self.get_conn()` y nunca las devuelve; `_safety_get_conn` usa
+`getconn()`. Cada `is_halted()` filtra una conn del pool (max 10) → un run real
+del loop agota el pool tras ~10 iteraciones. No bloquea tests (pocas ops +
+`close_all_pools` en teardown), pero hay que arreglarlo antes de un run largo /
+prod. Fix pendiente de decidir.
+
+**Estado:** Bloque 7 COMPLETO (capa DB). Siguiente: resolver pool-leak → Bloque 8.
+
