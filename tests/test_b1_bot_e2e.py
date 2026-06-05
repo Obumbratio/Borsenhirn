@@ -143,9 +143,10 @@ def test_e2e_writes_isolated_from_default(e2e_tenant):
 def test_safety_stack_killswitch(e2e_tenant):
     from borsenhirn.safety.bootstrap import SafetyStack
 
-    # get_conn_fn idéntico al _safety_get_conn de main.py (conn del app pool)
+    # get_conn_fn idéntico al _safety_get_conn de main.py: context manager
+    # que devuelve la conn al pool (no la cruda del pool → no leak).
     def get_conn_fn():
-        return db.get_app_pool().getconn()
+        return db.get_conn(role="app")
 
     stack = SafetyStack.init_from_config(get_conn_fn, tenant_id=e2e_tenant)
 
@@ -155,3 +156,19 @@ def test_safety_stack_killswitch(e2e_tenant):
     assert len(stack.killswitch.active_reasons()) >= 1
     stack.killswitch.clear_all("e2e cleanup")
     assert not stack.is_halted()
+
+
+def test_safety_no_pool_leak(e2e_tenant):
+    """
+    Regresión B7: is_halted() en cada iteración del loop NO debe agotar el
+    pool. Antes del fix, ~10 llamadas filtraban todas las conns (max 10) y
+    la 11ª lanzaba PoolError. Acá hacemos 3x el tamaño del pool.
+    """
+    from borsenhirn.safety.bootstrap import SafetyStack
+
+    stack = SafetyStack.init_from_config(
+        lambda: db.get_conn(role="app"), tenant_id=e2e_tenant,
+    )
+    n = db._POOL_MAX * 3
+    for _ in range(n):
+        stack.is_halted()   # cada una abre+devuelve una conn del pool

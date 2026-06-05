@@ -7,9 +7,9 @@
 
 ## Dónde voy
 Sprint B1 multi-tenancy Phase B · **Bloques 5, 6 y 7 COMPLETOS** · branch `feature/multi-tenancy-phase-b`
-Próxima acción: **Bloque 8** (aplicar a prod) — PERO antes resolver el hallazgo abierto
-del pool-leak de la safety stack (ver abajo). Bloque 7 destapó y arregló un bug de
-INSERT sin tenant_id (migración DEFAULT en las 17 tablas).
+Próxima acción: **Bloque 8** (aplicar a prod). Bloque 7 destapó y arregló DOS bugs:
+INSERT sin tenant_id (migración DEFAULT en las 17 tablas) y el pool-leak de la safety
+stack (ambos resueltos y testeados).
 
 ## Estado del Bloque 5 (refactor capa de app)
 | Sub-bloque | Qué | Estado | Commit |
@@ -33,15 +33,16 @@ INSERT sin tenant_id (migración DEFAULT en las 17 tablas).
 - Bug latente arreglado: `main.py` importaba `_get_conn` borrado en 5.4.a → `import main` OK.
 
 ## Qué falta para "misión cumplida"
-Resolver pool-leak de safety (hallazgo B7) → **Bloque 8 (aplicar a prod `borsenhirn`
-con backup; legacy se RENAME no DROP — incluir la migración DEFAULT del Bloque 7)** → Bloque 9 (docs final).
+**Bloque 8 (aplicar a prod `borsenhirn` con backup; legacy se RENAME no DROP — incluir
+la migración DEFAULT del Bloque 7)** → Bloque 9 (docs final).
 
-## Hallazgo ABIERTO (B7) — pool-leak en safety stack
-`PostgresStateStore.get/set/list_active` sacan conn con `self.get_conn()` y NUNCA la
-devuelven al pool; `main._safety_get_conn` hace `get_app_pool().getconn()`. Cada
-`is_halted()` filtra una conn → el bot agota el pool (max 10) tras ~10 iteraciones del
-loop. No bloquea los tests (pocas ops + `close_all_pools`), pero **rompe un run real
-largo**. Fix pendiente de decidir (devolver conn al pool / usar context manager).
+## Hallazgo RESUELTO (B7) — pool-leak en safety stack
+`PostgresStateStore` sacaba conn con `self.get_conn()` y nunca la devolvía → el bot
+agotaba el pool (max 10) tras ~10 iteraciones del loop. Fix: helper `_acquire` en
+`state_store_pg.py` que entra/sale del context manager `bdb.get_conn` (devuelve la
+conn al pool); `main._safety_get_conn` ahora devuelve `bdb.get_conn(role="app")`.
+Backward-compat con conn plano (ks_admin/test_alerts) preservada. Test de regresión
+`test_safety_no_pool_leak` (3× el pool sin agotarse).
 
 ## Métricas
 - pytest baseline: **267 passed, 57 skipped** (los módulos de integración 5.6 +

@@ -34,19 +34,16 @@ _ET = ZoneInfo("America/New_York")
 
 def _safety_get_conn():
     """
-    Devuelve conn fresca del app pool, compatible con el contrato
-    `get_conn_fn` que espera SafetyStack (funcion plain, NO context
-    manager — la conn se mantiene abierta hasta que el caller la
-    descarte por GC).
+    Devuelve un context manager del app pool para la SafetyStack.
 
-    Reemplazo del `_get_conn` viejo de bot_memory_pg que fue
-    eliminado en B1 5.4.a junto con el pool propio del modulo.
-
-    Nota: el bot real usa pocas conns simultaneas para safety
-    (1-2), asi que el pool de tamano 10 sobra. Si el flujo
-    cambiara, refactorizar a context manager.
+    IMPORTANTE: devuelve `bdb.get_conn(...)` (un context manager), NO una
+    conn cruda. El store (`PostgresStateStore`/`make_dashboard_db_write`)
+    lo entra/sale por cada operacion via su helper `_acquire`, asi la conn
+    VUELVE al pool al terminar. Esto evita el leak que agotaba el pool tras
+    ~10 iteraciones del loop (cada `is_halted()` sacaba una conn sin
+    devolverla). Ver B1 Bloque 7.
     """
-    return bdb.get_app_pool().getconn()
+    return bdb.get_conn(role="app")
 
 
 def is_market_open() -> bool:

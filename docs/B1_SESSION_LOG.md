@@ -625,12 +625,24 @@ lecturas funcionaban (filtro USING), solo fallaban las escrituras.
 **Verificación:** e2e 3 passed · integración total (5.6+B6+B7) 16 passed ·
 baseline 267 passed · dev intacto (default 31, 0 tenants de test residuales).
 
-**⚠️ Hallazgo ABIERTO — pool-leak en safety stack:** `PostgresStateStore`
-saca conns con `self.get_conn()` y nunca las devuelve; `_safety_get_conn` usa
-`getconn()`. Cada `is_halted()` filtra una conn del pool (max 10) → un run real
-del loop agota el pool tras ~10 iteraciones. No bloquea tests (pocas ops +
-`close_all_pools` en teardown), pero hay que arreglarlo antes de un run largo /
-prod. Fix pendiente de decidir.
+**⚠️→✅ Segundo bug: pool-leak en safety stack (RESUELTO en el acto).**
+`PostgresStateStore.get/set/list_active/clear` sacaban conn con `self.get_conn()`
+y nunca la devolvían; `_safety_get_conn` usaba `getconn()`. Cada `is_halted()`
+filtraba una conn del pool (max 10) → un run real del loop lo agotaba tras ~10
+iteraciones (`PoolError`).
 
-**Estado:** Bloque 7 COMPLETO (capa DB). Siguiente: resolver pool-leak → Bloque 8.
+**Fix (opción "get_conn_fn con devolución", elegida por Uriel):**
+- [x] Helper `_acquire(get_conn)` en `state_store_pg.py`: si el factory devuelve
+      un context manager (`bdb.get_conn()`), lo entra/sale → la conn vuelve al
+      pool; si devuelve un conn plano (legacy ks_admin/test_alerts), lo cede tal
+      cual (backward-compat). Aplicado a los 4 métodos del store +
+      `make_dashboard_db_write`.
+- [x] `main._safety_get_conn` ahora devuelve `bdb.get_conn(role="app")` (CM).
+- [x] `tests/test_b1_bot_e2e.py::test_safety_no_pool_leak` — regresión: 3× el
+      tamaño del pool sin agotarse.
+- Verificado: e2e 4 passed, safety units 15 passed, integración 17 passed,
+  baseline 267 passed.
+
+**Estado:** Bloque 7 COMPLETO (capa DB, 2 bugs arreglados). Siguiente: Bloque 8
+(aplicar a prod, incluyendo la migración DEFAULT del Bloque 7).
 

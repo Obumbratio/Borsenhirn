@@ -20,6 +20,30 @@ from borsenhirn.tenancy.db import TenantContext
 logger = logging.getLogger(__name__)
 
 
+@contextmanager
+def _acquire(get_conn):
+    """
+    Normaliza el factory `get_conn` para no filtrar conexiones del pool.
+
+    - Si `get_conn()` devuelve un context manager (p.ej. `bdb.get_conn()`),
+      se entra y se sale de él: la conexión vuelve al pool al terminar la
+      operación. Este es el path de runtime correcto (sin leak).
+    - Si devuelve una conexión plana (legacy: ks_admin.py, test_alerts.py,
+      tests con conn fijo), se cede tal cual; su ciclo de vida lo maneja el
+      caller, igual que antes.
+
+    Motivo: antes el store hacía `conn = get_conn()` y nunca la devolvía.
+    Con `_safety_get_conn` sacando del pool por cada `is_halted()`, el bot
+    agotaba el pool tras ~10 iteraciones del loop (B1 Bloque 7).
+    """
+    obj = get_conn()
+    if hasattr(obj, "__enter__") and hasattr(obj, "__exit__"):
+        with obj as conn:
+            yield conn
+    else:
+        yield obj
+
+
 class PostgresStateStore:
     """
     StateStore para killswitch.
@@ -66,20 +90,20 @@ class PostgresStateStore:
               FROM killswitch_state
              WHERE key = %s
         """
-        conn = self.get_conn()
-        try:
-            with self._scoped_cursor(conn) as cur:
-                cur.execute(sql, (key,))
-                row = cur.fetchone()
-                if not row:
-                    return None
-                return self._row_to_dict(
-                    row, ["key", "triggered", "reason", "data",
-                          "triggered_at", "cleared_at"]
-                )
-        except Exception as exc:
-            logger.error("PostgresStateStore.get(%s) falló: %s", key, exc)
-            return None
+        with _acquire(self.get_conn) as conn:
+            try:
+                with self._scoped_cursor(conn) as cur:
+                    cur.execute(sql, (key,))
+                    row = cur.fetchone()
+                    if not row:
+                        return None
+                    return self._row_to_dict(
+                        row, ["key", "triggered", "reason", "data",
+                              "triggered_at", "cleared_at"]
+                    )
+            except Exception as exc:
+                logger.error("PostgresStateStore.get(%s) falló: %s", key, exc)
+                return None
 
     def set(self, key: str, triggered: bool, reason: str,
             data: Optional[Dict[str, Any]] = None) -> None:
@@ -108,15 +132,15 @@ class PostgresStateStore:
                 updated_at = now()
         """
         payload = json.dumps(data or {}, default=str)
-        conn = self.get_conn()
-        try:
-            with self._scoped_cursor(conn) as cur:
-                cur.execute(sql, (key, triggered, reason, payload,
-                                  triggered, triggered))
-            conn.commit()
-        except Exception as exc:
-            logger.error("PostgresStateStore.set(%s) falló: %s", key, exc)
-            conn.rollback()
+        with _acquire(self.get_conn) as conn:
+            try:
+                with self._scoped_cursor(conn) as cur:
+                    cur.execute(sql, (key, triggered, reason, payload,
+                                      triggered, triggered))
+                conn.commit()
+            except Exception as exc:
+                logger.error("PostgresStateStore.set(%s) falló: %s", key, exc)
+                conn.rollback()
 
     def list_active(self) -> List[Dict[str, Any]]:
         sql = """
@@ -125,22 +149,22 @@ class PostgresStateStore:
              WHERE triggered = true
              ORDER BY triggered_at DESC NULLS LAST
         """
-        conn = self.get_conn()
-        try:
-            with self._scoped_cursor(conn) as cur:
-                cur.execute(sql)
-                rows = cur.fetchall()
-                return [
-                    self._row_to_dict(
-                        r,
-                        ["key", "triggered", "reason", "data",
-                         "triggered_at", "cleared_at"],
-                    )
-                    for r in rows
-                ]
-        except Exception as exc:
-            logger.error("PostgresStateStore.list_active falló: %s", exc)
-            return []
+        with _acquire(self.get_conn) as conn:
+            try:
+                with self._scoped_cursor(conn) as cur:
+                    cur.execute(sql)
+                    rows = cur.fetchall()
+                    return [
+                        self._row_to_dict(
+                            r,
+                            ["key", "triggered", "reason", "data",
+                             "triggered_at", "cleared_at"],
+                        )
+                        for r in rows
+                    ]
+            except Exception as exc:
+                logger.error("PostgresStateStore.list_active falló: %s", exc)
+                return []
 
     def clear(self, key: str, note: str = "") -> None:
         sql = """
@@ -152,14 +176,14 @@ class PostgresStateStore:
                    updated_at = now()
              WHERE key = %s
         """
-        conn = self.get_conn()
-        try:
-            with self._scoped_cursor(conn) as cur:
-                cur.execute(sql, (note, key))
-            conn.commit()
-        except Exception as exc:
-            logger.error("PostgresStateStore.clear(%s) falló: %s", key, exc)
-            conn.rollback()
+        with _acquire(self.get_conn) as conn:
+            try:
+                with self._scoped_cursor(conn) as cur:
+                    cur.execute(sql, (note, key))
+                conn.commit()
+            except Exception as exc:
+                logger.error("PostgresStateStore.clear(%s) falló: %s", key, exc)
+                conn.rollback()
 
 
 def make_dashboard_db_write(get_conn, tenant_id: Optional[str] = None):
@@ -181,18 +205,9 @@ def make_dashboard_db_write(get_conn, tenant_id: Optional[str] = None):
             INSERT INTO alerts_log (level, subject, body, meta)
             VALUES (%s, %s, %s, %s::jsonb)
         """
-        conn = get_conn()
-        try:
-            if tenant_id is None:
-                with conn.cursor() as cur:
-                    cur.execute(sql, (
-                        row.get("level"),
-                        row.get("subject"),
-                        row.get("body"),
-                        row.get("meta"),
-                    ))
-            else:
-                with TenantContext(conn, tenant_id):
+        with _acquire(get_conn) as conn:
+            try:
+                if tenant_id is None:
                     with conn.cursor() as cur:
                         cur.execute(sql, (
                             row.get("level"),
@@ -200,8 +215,17 @@ def make_dashboard_db_write(get_conn, tenant_id: Optional[str] = None):
                             row.get("body"),
                             row.get("meta"),
                         ))
-            conn.commit()
-        except Exception as exc:
-            logger.error("alerts_log write falló: %s", exc)
-            conn.rollback()
+                else:
+                    with TenantContext(conn, tenant_id):
+                        with conn.cursor() as cur:
+                            cur.execute(sql, (
+                                row.get("level"),
+                                row.get("subject"),
+                                row.get("body"),
+                                row.get("meta"),
+                            ))
+                conn.commit()
+            except Exception as exc:
+                logger.error("alerts_log write falló: %s", exc)
+                conn.rollback()
     return _write
