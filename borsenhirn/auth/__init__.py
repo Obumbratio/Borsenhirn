@@ -11,6 +11,8 @@ from borsenhirn.auth.verifier import (
     AuthError,
     TokenVerifier,
     StaticTokenVerifier,
+    ClerkJWKSVerifier,
+    build_verifier_from_env,
 )
 
 __all__ = [
@@ -18,4 +20,6 @@ __all__ = [
     "AuthError",
     "TokenVerifier",
     "StaticTokenVerifier",
+    "ClerkJWKSVerifier",
+    "build_verifier_from_env",
 ]
