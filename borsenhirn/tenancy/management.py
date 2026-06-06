@@ -141,6 +141,80 @@ class TenantManager:
             row = cur.fetchone()
         return self._row_to_tenant(row) if row else None
 
+    def get_tenant_by_clerk_id(self, clerk_user_id: str) -> Optional[Tenant]:
+        """Devuelve el Tenant mapeado a ese clerk_user_id, o None (B3)."""
+        if not clerk_user_id:
+            raise ValueError("clerk_user_id vacío")
+        sql = """
+            SELECT tenant_id, slug, email, display_name, status,
+                   created_at, updated_at, suspended_at, metadata
+              FROM tenants
+             WHERE clerk_user_id = %s
+        """
+        conn = self.get_conn()
+        with conn.cursor() as cur:
+            cur.execute(sql, (clerk_user_id,))
+            row = cur.fetchone()
+        return self._row_to_tenant(row) if row else None
+
+    def provision_for_clerk_user(
+        self, clerk_user_id: str, email: str, display_name: str,
+    ) -> Tenant:
+        """
+        Resuelve (o crea) el tenant de un usuario Clerk. Modelo 1:1 (B3).
+
+        Lazy + race-safe: si no existe, INSERT con
+        `ON CONFLICT (clerk_user_id) DO NOTHING`; si otro request ganó la
+        carrera, re-lookup. Sin tenants huérfanos.
+
+        Corre con credenciales admin (escribe en `tenants`).
+        """
+        if not clerk_user_id:
+            raise ValueError("clerk_user_id vacío")
+        existing = self.get_tenant_by_clerk_id(clerk_user_id)
+        if existing:
+            return existing
+        if not is_valid_email(email):
+            raise ValueError(f"email inválido: {email!r}")
+        if not display_name or len(display_name) > 200:
+            raise ValueError("display_name debe tener entre 1 y 200 chars")
+
+        tid = new_tenant_id()
+        slug = self._derive_slug(email, tid)
+        meta = {"clerk_user_id": clerk_user_id, "source": "clerk"}
+        sql = """
+            INSERT INTO tenants
+                (tenant_id, slug, email, display_name, status, metadata, clerk_user_id)
+            VALUES (%s, %s, %s, %s, %s, %s::jsonb, %s)
+            ON CONFLICT (clerk_user_id) DO NOTHING
+            RETURNING tenant_id, slug, email, display_name, status,
+                      created_at, updated_at, suspended_at, metadata
+        """
+        conn = self.get_conn()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(sql, (
+                    tid, slug, email, display_name,
+                    TenantStatus.ACTIVE.value, json.dumps(meta), clerk_user_id,
+                ))
+                row = cur.fetchone()
+            conn.commit()
+        except Exception as exc:
+            conn.rollback()
+            logger.error("provision_for_clerk_user fallo: %s", exc)
+            raise
+        if row:
+            logger.info("Tenant provisionado para clerk_user=%s -> %s",
+                        clerk_user_id, tid)
+            return self._row_to_tenant(row)
+        # Conflicto: otro request lo creó primero → re-lookup.
+        existing = self.get_tenant_by_clerk_id(clerk_user_id)
+        if existing:
+            return existing
+        raise RuntimeError(
+            f"no se pudo provisionar ni resolver clerk_user={clerk_user_id!r}"
+        )
+
     # ── list ─────────────────────────────────────────────
 
     def list_tenants(

@@ -97,16 +97,18 @@ get_current_tenant(request) -> str                 (FastAPI Depends; ata todo;
   request sin Authorization → 401.
 - (Real) `ClerkJWKSVerifier` contra un JWKS mockeado (httpx) — sin red.
 
-## 9. Decisiones a confirmar antes de implementar
+## 9. Decisiones (CONFIRMADAS 2026-06-05)
 
-- **D1:** lib JWT → `pyjwt[crypto]` (recomendado) vs SDK `clerk-backend-api`.
-- **D2:** `user_credentials.user_id` → ¿= `tenant_id` (1:1) o se mantiene separado?
-- **D3:** email/nombre del usuario → ¿vía JWT template de Clerk (recomendado) o
-  fetch al Backend API de Clerk en la provisión?
-- **D4:** qué endpoints se protegen ahora (¿`/signal`? ¿endpoints nuevos
-  tenant-scoped? ¿`/status` queda público?).
-- **D5:** provisión **lazy** (primer request, recomendado MVP) vs **webhook**
-  de Clerk (`user.created`).
+- **D1 ✅ `pyjwt[crypto]`.** Se agrega a requirements; `PyJWKClient` para el JWKS.
+- **D2 ✅ `user_id = tenant_id`.** Una sola identidad interna; credenciales se
+  scopean por `tenant_id` (ya con RLS). En provisión, `user_id := tenant_id`.
+- **D3 → default:** email/nombre desde los **claims del JWT template** de Clerk;
+  si no vienen, fallback graceful (email derivado del `sub`, nombre vacío) —
+  sin fetch al Backend API por ahora.
+- **D4 ✅ solo endpoints nuevos tenant-scoped.** `/status` y `/health` quedan
+  públicos; `/signal` como está; los endpoints que toquen datos del tenant son
+  nuevos y van protegidos con `Depends(get_current_tenant)`.
+- **D5 ✅ provisión lazy** en el primer request autenticado.
 
 ## 10. Secuencia de implementación (sub-bloques)
 
