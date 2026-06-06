@@ -13,8 +13,10 @@ from fastapi import FastAPI, Depends
 from pydantic import BaseModel
 import borsenhirn.db as bdb
 from borsenhirn.auth.deps import get_current_tenant
-from borsenhirn.core.cache import get_bot_status, set_bot_status, is_available
-from borsenhirn.core.database import test_connection
+# NOTA: core.cache (redis) y core.database (sqlalchemy) se importan LAZY dentro
+# de los endpoints que los usan (/status, /signal). Así la API — y en especial
+# los endpoints de auth /me — se importan y corren aunque esas libs no estén
+# instaladas (solo usan psycopg2/bdb).
 
 logger = logging.getLogger(__name__)
 app = FastAPI(title="Börsenhirn API", version="1.0.0")
@@ -36,6 +38,8 @@ def root():
 @app.get("/status")
 def get_status():
     """Estado actual del bot y la plataforma."""
+    from borsenhirn.core.cache import get_bot_status, is_available
+    from borsenhirn.core.database import test_connection
     return {
         "timestamp":  datetime.now(timezone.utc).isoformat(),
         "postgres":   test_connection(),
