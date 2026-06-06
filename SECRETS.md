@@ -190,6 +190,45 @@ rompen y vas a poder reintentarlo.
 
 ---
 
+## Master key fuera de `.env` — secret providers (B2)
+
+El código resuelve la master key vía una **cadena de providers intercambiables**
+(`borsenhirn/security/secret_provider.py`), sin acoplarse a un manager
+específico. `config.BORSENHIRN_MASTER_KEY` y `Vault.from_provider()` usan esta
+cadena. Orden de prioridad (gana el primero con valor):
+
+| # | Provider | Cómo se configura | Caso de uso |
+|---|---|---|---|
+| 1 | `file` | env `BORSENHIRN_MASTER_KEY_FILE=/ruta` | secretos montados (Docker/K8s `/run/secrets/...`) |
+| 2 | `command` | env `BORSENHIRN_MASTER_KEY_CMD="..."` | CLI de un secrets manager |
+| 3 | `env` | env `BORSENHIRN_MASTER_KEY=...` | dev (`.env`) y PaaS que inyecta env vars |
+
+**Ejemplos de `_CMD` (sin agregar SDKs):**
+```bash
+# Doppler
+export BORSENHIRN_MASTER_KEY_CMD="doppler secrets get BORSENHIRN_MASTER_KEY --plain"
+# AWS Secrets Manager
+export BORSENHIRN_MASTER_KEY_CMD="aws secretsmanager get-secret-value --secret-id borsenhirn/master_key --query SecretString --output text"
+# HashiCorp Vault
+export BORSENHIRN_MASTER_KEY_CMD="vault kv get -field=master_key secret/borsenhirn"
+# 1Password
+export BORSENHIRN_MASTER_KEY_CMD="op read op://Prod/borsenhirn/master_key"
+```
+
+**Docker/K8s (file):**
+```bash
+export BORSENHIRN_MASTER_KEY_FILE=/run/secrets/borsenhirn_master_key
+```
+
+En **dev** no configurás nada extra: cae al provider `env` y lee de `.env`
+(comportamiento de siempre). En **prod** seteás `_FILE` o `_CMD` y la master key
+**nunca toca un archivo `.env` del repo ni del deploy**.
+
+Agregar un manager con SDK (boto3, hvac) = un provider nuevo que implemente
+`.get(name)`; no cambia nada más. Tests: `tests/test_security_secret_provider.py`.
+
+---
+
 ## Garantías que te da este sistema
 
 | Propiedad | Cómo se logra |

@@ -6,11 +6,12 @@
 2026-06-05
 
 ## Dónde voy
-Sprint B1 multi-tenancy Phase B · **DEV-COMPLETE** (Bloques -1..7 + 9) · branch `feature/multi-tenancy-phase-b`
-Única acción pendiente: **ejecutar Bloque 8** (aplicar a prod). Los 6 scripts están
-generados y validados (dry-run idempotente sobre dev OK), esperando la ventana de
-mantenimiento. **Nada aplicado a prod todavía.**
-Cierre del sprint: [B1_CLOSEOUT.md](B1_CLOSEOUT.md) · Plan prod: [B1_BLOCK8_PLAN.md](B1_BLOCK8_PLAN.md).
+**B1 DEV-COMPLETE** (pendiente: ejecutar Bloque 8 en prod — 6 scripts listos, ver
+[B1_BLOCK8_PLAN.md](B1_BLOCK8_PLAN.md) / [B1_CLOSEOUT.md](B1_CLOSEOUT.md)).
+**Ahora: B2 Vault — en progreso.** Foco: sacar la master key de `.env`.
+Hecho: capa de secret providers (`borsenhirn/security/secret_provider.py` —
+file/command/env intercambiables, `Vault.from_provider()`, `config` resuelve vía
+la cadena). 19 tests nuevos. Doc en `SECRETS.md`. Branch `feature/multi-tenancy-phase-b`.
 
 ## Estado del Bloque 5 (refactor capa de app)
 | Sub-bloque | Qué | Estado | Commit |

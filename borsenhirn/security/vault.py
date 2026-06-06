@@ -139,13 +139,33 @@ class Vault:
 
     @classmethod
     def from_env(cls, env_var: str = "BORSENHIRN_MASTER_KEY") -> "Vault":
-        """Construye un Vault leyendo la master key desde una env var."""
+        """Construye un Vault leyendo la master key SOLO desde una env var.
+
+        Para producción preferí `from_provider()`, que además soporta archivo
+        montado y comando de secrets manager (B2)."""
         key = os.environ.get(env_var)
         if not key:
             raise VaultError(
                 f"env var {env_var} no está seteada. "
                 f"Generá una con generate_master_key() y agregala a tu .env."
             )
+        return cls(key)
+
+    @classmethod
+    def from_provider(cls, env_var: str = "BORSENHIRN_MASTER_KEY") -> "Vault":
+        """
+        Construye un Vault resolviendo la master key vía la cadena de secret
+        providers (B2): archivo montado (`{var}_FILE`) -> comando de secrets
+        manager (`{var}_CMD`) -> env var (`{var}`, dev). Esto saca la master
+        key de `.env` en producción sin acoplar a un manager específico.
+        """
+        # Import local para no encarecer el import de vault en contextos
+        # que no construyen un Vault desde provider.
+        from borsenhirn.security.secret_provider import load_master_key, SecretError
+        try:
+            key = load_master_key(env_var)
+        except SecretError as exc:
+            raise VaultError(str(exc)) from exc
         return cls(key)
 
     # ── Operaciones core ──────────────────────────────────

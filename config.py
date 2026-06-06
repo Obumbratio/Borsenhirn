@@ -156,11 +156,19 @@ SANITY_MAX_PRICE          = float(os.getenv("SANITY_MAX_PRICE", 100_000))
 SANITY_MAX_QTY_PER_ORDER  = int(os.getenv("SANITY_MAX_QTY_PER_ORDER", 10_000))
 SANITY_WASH_GAP_SEC       = int(os.getenv("SANITY_WASH_GAP_SEC", 300))
 
-# ── Secrets vault (Gap 3) ─────────────────────────────────────────
+# ── Secrets vault (Gap 3 + B2) ────────────────────────────────────
 # Master key Fernet para encriptar credenciales de usuarios SaaS.
 # Generar con: python -c "from borsenhirn.security import generate_master_key; print(generate_master_key())"
-# NUNCA commitear el valor real — solo va en .env (que está en .gitignore).
-BORSENHIRN_MASTER_KEY     = os.getenv("BORSENHIRN_MASTER_KEY", "")
+# NUNCA commitear el valor real.
+# B2: se resuelve vía secret provider (archivo montado {VAR}_FILE -> comando
+# {VAR}_CMD del secrets manager -> env var {VAR} en dev). Así la master key
+# sale de .env en producción. Fallback defensivo a os.getenv si el módulo
+# de seguridad no estuviera disponible.
+try:
+    from borsenhirn.security.secret_provider import resolve_secret as _resolve_secret
+    BORSENHIRN_MASTER_KEY = _resolve_secret("BORSENHIRN_MASTER_KEY", default="") or ""
+except Exception:  # pragma: no cover - fallback ante import roto
+    BORSENHIRN_MASTER_KEY = os.getenv("BORSENHIRN_MASTER_KEY", "")
 # Para rotación: temporalmente ambos están seteados.
 BORSENHIRN_NEW_MASTER_KEY = os.getenv("BORSENHIRN_NEW_MASTER_KEY", "")
 

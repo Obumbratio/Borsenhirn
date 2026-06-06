@@ -16,6 +16,14 @@ from borsenhirn.security.credentials import (
     CredentialStore,
     UserCredentials,
 )
+from borsenhirn.security.secret_provider import (
+    SecretError,
+    resolve_secret,
+    load_master_key,
+    EnvSecretProvider,
+    FileSecretProvider,
+    CommandSecretProvider,
+)
 
 __all__ = [
     "Vault",
@@ -24,4 +32,11 @@ __all__ = [
     "derive_key_from_passphrase",
     "CredentialStore",
     "UserCredentials",
+    # B2 — secret providers
+    "SecretError",
+    "resolve_secret",
+    "load_master_key",
+    "EnvSecretProvider",
+    "FileSecretProvider",
+    "CommandSecretProvider",
 ]
