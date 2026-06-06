@@ -7,6 +7,7 @@
 - [B1 — capa de aplicación multi-tenant](B1_APP_LAYER.md)
 - [B1 Bloque 8 — plan de aplicación a producción](B1_BLOCK8_PLAN.md)
 - [B1 — cierre del sprint](B1_CLOSEOUT.md)
+- [B3 — plan de auth con Clerk](B3_AUTH_PLAN.md)
 - Börsenhirn SaaS — bloques B1..B10
 - Specula Oeconomica
 - CSUEB / certificaciones
