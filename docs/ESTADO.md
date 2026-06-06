@@ -9,9 +9,13 @@
 **B1 DEV-COMPLETE** (pendiente: ejecutar Bloque 8 en prod — 6 scripts listos, ver
 [B1_BLOCK8_PLAN.md](B1_BLOCK8_PLAN.md) / [B1_CLOSEOUT.md](B1_CLOSEOUT.md)).
 **Ahora: B2 Vault — en progreso.** Foco: sacar la master key de `.env`.
-Hecho: capa de secret providers (`borsenhirn/security/secret_provider.py` —
-file/command/env intercambiables, `Vault.from_provider()`, `config` resuelve vía
-la cadena). 19 tests nuevos. Doc en `SECRETS.md`. Branch `feature/multi-tenancy-phase-b`.
+Hecho: (1) capa de secret providers (`secret_provider.py` — file/command/env,
+`Vault.from_provider()`, `config` resuelve vía la cadena; 19 tests). (2) rotación
+operacionalizada (`rotate_master_key.py`: keys vía provider, guard anti no-op que
+exige rol admin con visibilidad cross-tenant, aviso 0-filas; 7 tests). Doc en
+`SECRETS.md`. Baseline 293 passed. Branch `feature/multi-tenancy-phase-b`.
+Pendiente B2 (opcional / depende de B3): envelope encryption per-tenant, modelo
+user_id↔tenant_id, audit de acceso (probable B5).
 
 ## Estado del Bloque 5 (refactor capa de app)
 | Sub-bloque | Qué | Estado | Commit |

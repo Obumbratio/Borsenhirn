@@ -165,6 +165,23 @@ BORSENHIRN_MASTER_KEY="$NEW_KEY" python scripts/vault_demo.py
 El script es atómico por fila: si algún registro falla, los demás no se
 rompen y vas a poder reintentarlo.
 
+### Operacional (B2)
+
+- **Resolución de keys vía secret providers.** El script resuelve la key ACTUAL
+  (`BORSENHIRN_MASTER_KEY`) y la NUEVA (`BORSENHIRN_NEW_MASTER_KEY`) con la misma
+  cadena `file -> command -> env`. En prod la key activa puede venir de un
+  secrets manager: `BORSENHIRN_MASTER_KEY_CMD="doppler secrets get ... --plain"`
+  o `..._FILE=/run/secrets/...`. No hace falta pasarla por `.env`.
+- **Debe correr como rol admin (cross-tenant).** La rotación recorre TODAS las
+  filas de `user_credentials` (de todos los tenants). Eso requiere un rol que
+  bypassee RLS (superuser `postgres` o `BYPASSRLS`). El script lo **verifica y
+  aborta** si el rol está sujeto a RLS — sino vería 0 filas y "rotaría" nada en
+  silencio. Por eso usa `DB_USER`/`DB_PASSWORD` (admin), no `borsenhirn_app`.
+- **Si reporta `Total filas: 0`** cuando esperabas credenciales: estás apuntando
+  a la DB equivocada o el rol no bypassa RLS. NO promuevas la key nueva.
+- **Agenda.** Rotar cada **6 meses** (calendario) y de inmediato ante sospecha de
+  leak. Dejar agendado un recordatorio recurrente.
+
 ---
 
 ## Donde NO meter la master key

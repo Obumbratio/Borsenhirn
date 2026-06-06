@@ -47,6 +47,7 @@ from borsenhirn.security import (  # noqa: E402
     CredentialStore,
     Vault,
     VaultError,
+    resolve_secret,
 )
 
 setup_logging()
@@ -54,13 +55,55 @@ logger = logging.getLogger(__name__)
 
 
 def get_db_conn():
-    """Helper que abre una conexión psycopg2 nueva."""
+    """Helper que abre una conexión psycopg2 nueva (rol admin)."""
     import psycopg2
     return psycopg2.connect(
         host=config.DB_HOST, port=config.DB_PORT,
         dbname=config.DB_NAME, user=config.DB_USER,
         password=config.DB_PASSWORD,
     )
+
+
+def resolve_rotation_keys(old_env: str, new_env: str):
+    """
+    Resuelve la master key ACTUAL y la NUEVA vía la cadena de secret providers
+    (B2): {VAR}_FILE -> {VAR}_CMD -> {VAR}. Así funciona también en prod, donde
+    la key activa vive en un secrets manager, no en .env.
+
+    Raises ValueError si falta alguna o si son iguales.
+    """
+    old_key = resolve_secret(old_env)
+    new_key = resolve_secret(new_env)
+    if not old_key or not new_key:
+        raise ValueError(
+            f"necesito ambas keys: {old_env} (actual) y {new_env} (nueva). "
+            f"Seteá cada una como {{VAR}}, {{VAR}}_FILE o {{VAR}}_CMD."
+        )
+    if old_key == new_key:
+        raise ValueError("old y new key son iguales — no hay rotación posible")
+    return old_key, new_key
+
+
+def assert_cross_tenant_visibility(conn) -> None:
+    """
+    Guard operacional: la rotación recorre TODAS las filas de user_credentials
+    (cross-tenant, store con tenant_id=None). Eso requiere un rol que NO esté
+    sujeto a RLS (superuser o BYPASSRLS). Con un rol normal + FORCE RLS y sin
+    tenant context, las queries devuelven 0 filas → la rotación "tendría éxito"
+    sin rotar nada. Abortamos antes de que eso pase.
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT rolsuper OR rolbypassrls FROM pg_roles "
+            "WHERE rolname = current_user"
+        )
+        row = cur.fetchone()
+    if not (row and row[0]):
+        raise RuntimeError(
+            "el rol de conexión está sujeto a RLS (no es superuser ni BYPASSRLS). "
+            "La rotación cross-tenant debe correr como admin (p.ej. postgres), "
+            "o vería 0 filas y no rotaría nada. Revisá DB_USER en tu .env."
+        )
 
 
 def main():
@@ -77,13 +120,10 @@ def main():
         print("ERROR: pasá --dry-run o --confirm. Refusing to operate ambiguously.")
         sys.exit(2)
 
-    old_key = os.environ.get(args.old_env)
-    new_key = os.environ.get(args.new_env)
-    if not old_key or not new_key:
-        print(f"ERROR: necesito ambos env vars: {args.old_env} y {args.new_env}")
-        sys.exit(2)
-    if old_key == new_key:
-        print("ERROR: old y new key son iguales — no rotation possible")
+    try:
+        old_key, new_key = resolve_rotation_keys(args.old_env, args.new_env)
+    except ValueError as exc:
+        print(f"ERROR: {exc}")
         sys.exit(2)
 
     try:
@@ -94,6 +134,12 @@ def main():
         sys.exit(2)
 
     conn = get_db_conn()
+    try:
+        assert_cross_tenant_visibility(conn)
+    except RuntimeError as exc:
+        print(f"ERROR: {exc}")
+        conn.close()
+        sys.exit(2)
     old_store = CredentialStore(lambda: conn, old_vault)
     new_store = CredentialStore(lambda: conn, new_vault)
 
@@ -149,6 +195,10 @@ def main():
     print(f"  Total filas:  {total}")
     print(f"  Success:      {success}")
     print(f"  Failed:       {failed}")
+    if total == 0:
+        print("\n  AVISO: 0 filas en user_credentials. Si esperabas credenciales,")
+        print("  revisá que el rol bypasea RLS (visibilidad cross-tenant) y que")
+        print("  estás apuntando a la DB correcta. NO se rotó nada.")
     if failures:
         print("\n  Failures:")
         for uid, prov, err in failures:
