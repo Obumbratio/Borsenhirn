@@ -3,7 +3,7 @@
 > Misión y decisiones de fondo: ver [PLAN.md](PLAN.md). Log por bloque: [B1_SESSION_LOG.md](B1_SESSION_LOG.md).
 
 ## Última actualización
-2026-06-05
+2026-06-06
 
 ## Dónde voy
 **B1 DEV-COMPLETE** (pendiente: ejecutar Bloque 8 en prod — 6 scripts listos, ver
@@ -96,6 +96,6 @@ Correr: `RUN_DB_INTEGRATION=1 venv/bin/pytest tests/test_b1_rls_integration.py`
 (`tests/test_b1_rls_isolation_full.py`) + fix `config.py` (alias `DB_PASS`) + docs.
 
 ## Notas / reglas vivas
-- Prod `borsenhirn` intacta. Todo el trabajo contra `borsenhirn_dev`. Workflow manual (yo corro, pego output).
-- NUNCA commits/push automáticos.
+- Prod `borsenhirn` intacta (vive en otro host; ver pendiente B8). Trabajo en `borsenhirn_dev`.
+- Commits automáticos OK en local; **push a GitHub requiere confirmación**. Cosas de prod las corre Uriel.
 - GUC canónico de RLS: `app.current_tenant_id` (alineado al módulo `tenancy/db.py` existente).
