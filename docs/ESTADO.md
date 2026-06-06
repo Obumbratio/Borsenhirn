@@ -24,8 +24,12 @@ lazy, user_id=tenant_id, solo endpoints nuevos protegidos. Plan: [B3_AUTH_PLAN.m
 - B3.3 ✅ `ClerkJWKSVerifier` (RS256+JWKS) + factory `build_verifier_from_env`.
   Config-driven (env); testeado con JWKS mockeado. Vars en `.env.example`.
   **Falta solo poner los valores reales de tu Clerk** (CLERK_ISSUER/JWKS_URL).
-- B3.4 ⏳ FastAPI `get_current_tenant` + endpoints tenant-scoped + RLS context.
-Baseline 314 passed. `pyjwt[crypto]==2.10.1` en requirements.
+- B3.4 ✅ FastAPI `get_current_tenant` (`borsenhirn/auth/deps.py`) + endpoints
+  `/me` y `/me/trades/count` en `api/main.py`. e2e: JWT→verify→provisión→RLS.
+**Backend de B3 COMPLETO.** Para Clerk real en prod: poner `AUTH_VERIFIER=clerk`
++ `CLERK_ISSUER`/`CLERK_JWKS_URL` en el `.env`. Falta (aparte): frontend Next.js.
+Nota: `api/main.py` importa redis+sqlalchemy (subsistemas `core/*`) → para correr
+la API hace falta tenerlas instaladas (no están en el venv dev). Baseline 314 passed.
 
 ## Estado del Bloque 5 (refactor capa de app)
 | Sub-bloque | Qué | Estado | Commit |

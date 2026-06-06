@@ -1,19 +1,18 @@
 """
 api/main.py — FastAPI wrapper del trading bot.
-3 endpoints básicos: status, cycle, signal.
 
-TODO B3: derivar tenant_id desde auth context (Clerk JWT) cuando se
-agregue auth real. Por ahora la API no toca tablas con RLS — solo
-health check (Postgres SQLAlchemy) y cache Redis. Cuando /signal
-empiece a persistir contra tablas tenant-scoped, usar:
-    from borsenhirn import db as bdb
-    from borsenhirn.tenancy import DEFAULT_TENANT_UUID
-    # tenant_id = Depends(get_current_tenant)  # del auth
+Endpoints públicos: /, /status, /signal, /health.
+Endpoints autenticados (B3, Clerk JWT -> tenant): /me, /me/trades/count.
+  - `Depends(get_current_tenant)` verifica el JWT, resuelve/provisiona el
+    tenant, y devuelve el tenant_id; los handlers corren queries bajo el
+    RLS context con ese tenant.
 """
 import logging
 from datetime import datetime, timezone
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from pydantic import BaseModel
+import borsenhirn.db as bdb
+from borsenhirn.auth.deps import get_current_tenant
 from borsenhirn.core.cache import get_bot_status, set_bot_status, is_available
 from borsenhirn.core.database import test_connection
 
@@ -52,6 +51,22 @@ def receive_signal(signal: ExternalSignal):
     cache_signal(signal.symbol, signal.source, signal.dict())
     logger.info(f"[API] Señal recibida: {signal.source} → {signal.symbol} ({signal.signal_type})")
     return {"status": "ok", "message": f"Señal guardada para {signal.symbol}"}
+
+
+@app.get("/me")
+def me(tenant_id: str = Depends(get_current_tenant)):
+    """Devuelve el tenant del usuario autenticado (provisionado lazy en B3)."""
+    return {"tenant_id": tenant_id}
+
+
+@app.get("/me/trades/count")
+def my_trades_count(tenant_id: str = Depends(get_current_tenant)):
+    """Cuenta los trades del tenant autenticado — corre bajo RLS context."""
+    with bdb.get_conn(role="app") as conn, bdb.set_tenant(conn, tenant_id):
+        with conn.cursor() as cur:
+            cur.execute("SELECT count(*) FROM bot_trade_outcomes")
+            n = cur.fetchone()[0]
+    return {"tenant_id": tenant_id, "trades": n}
 
 
 @app.get("/health")
