@@ -17,10 +17,13 @@ exige rol admin con visibilidad cross-tenant, aviso 0-filas; 7 tests). Doc en
 Pendiente B2 (opcional / depende de B3): envelope encryption per-tenant, modelo
 user_id↔tenant_id, audit de acceso (probable B5).
 
-**B3 (Auth Clerk): plan escrito, a revisar.** Decidido: 1 usuario Clerk = 1 tenant
-(provisión lazy, `clerk_user_id`). Plan en [B3_AUTH_PLAN.md](B3_AUTH_PLAN.md) con
-decisiones D1..D5 a confirmar. Backend-only (no hay frontend en el repo). B3.1/3.2/3.4
-se pueden construir sin Clerk vivo; B3.3 necesita config de tu cuenta Clerk.
+**B3 (Auth Clerk): en progreso.** Decidido: 1 user Clerk = 1 tenant, pyjwt, provisión
+lazy, user_id=tenant_id, solo endpoints nuevos protegidos. Plan: [B3_AUTH_PLAN.md](B3_AUTH_PLAN.md).
+- B3.1 ✅ schema `clerk_user_id` + provisión (`provision_for_clerk_user`).
+- B3.2 ✅ `borsenhirn/auth/` — `TokenVerifier` + `StaticTokenVerifier` (HS256, pyjwt). 11 tests.
+- B3.3 ⏳ `ClerkJWKSVerifier` (RS256+JWKS) — necesita config de tu cuenta Clerk.
+- B3.4 ⏳ FastAPI `get_current_tenant` + endpoints tenant-scoped + RLS context.
+Baseline 304 passed. `pyjwt[crypto]==2.10.1` en requirements.
 
 ## Estado del Bloque 5 (refactor capa de app)
 | Sub-bloque | Qué | Estado | Commit |
