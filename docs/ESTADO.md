@@ -52,9 +52,13 @@ la API hace falta tenerlas instaladas (no están en el venv dev). Baseline 314 p
 - Rol `borsenhirn_app` creado; `config.py` lee `APP_DB_USER`/`APP_DB_PASSWORD` con fallback a admin.
 - Bug latente arreglado: `main.py` importaba `_get_conn` borrado en 5.4.a → `import main` OK.
 
-## Qué falta para "misión cumplida"
-**Bloque 8 (aplicar a prod `borsenhirn` con backup; legacy se RENAME no DROP — incluir
-la migración DEFAULT del Bloque 7)** → Bloque 9 (docs final).
+## ⏳ PENDIENTE CLAVE — ejecutar B1 Bloque 8 en prod
+Intentado 2026-06-06: **prod `borsenhirn` NO está en el Postgres de localhost**
+(solo `borsenhirn_dev` + `postgres`). La prod real vive en otra máquina/host
+(deployment), inalcanzable desde esta sesión, y el usuario no tiene a mano dónde/cómo.
+**Acción cuando se retome:** correr en el host de prod (con un `.env` que apunte a
+`borsenhirn`): `b1_block8_backup.sh` → `apply.sh` → `create_role.sh` → `verify.sh`.
+Todo validado en dev; scripts en `scripts/b1_block8_*`. Plan: [B1_BLOCK8_PLAN.md](B1_BLOCK8_PLAN.md).
 
 ## Hallazgo RESUELTO (B7) — pool-leak en safety stack
 `PostgresStateStore` sacaba conn con `self.get_conn()` y nunca la devolvía → el bot
