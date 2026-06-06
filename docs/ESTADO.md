@@ -38,7 +38,11 @@ así la API y los endpoints `/me` corren sin esas libs. Baseline 323 passed.
   `FakeBillingProvider` + factory + mapeo stripe_status→tenant_status. 16 tests
   (firma de webhook verificada offline). SDK `stripe==12.5.1` en requirements.
 - B4.3 ✅ `apply_stripe_event` + endpoint `/webhooks/stripe` (verifica firma, sync tenant.status). 8 tests.
-- B4.4 ⏳ endpoints checkout/portal. B4.5 ⏳ gating por status. Baseline 347 passed.
+- B4.4 ✅ endpoints `/billing/checkout` + `/billing/portal` (trial vía `STRIPE_TRIAL_DAYS`).
+- B4.5 ✅ gating: `get_active_tenant` (402 si no active) en `/me/trades/count`;
+  billing endpoints usan `get_current_tenant` (suspendido puede ir a pagar).
+**Backend de B4 COMPLETO.** Para Stripe real: `BILLING_PROVIDER=stripe` + STRIPE_* en `.env`.
+Falta (aparte): frontend (botones checkout/portal) + migración billing a prod. Baseline 354 passed.
 
 ## Estado del Bloque 5 (refactor capa de app)
 | Sub-bloque | Qué | Estado | Commit |

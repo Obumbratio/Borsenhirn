@@ -233,6 +233,19 @@ class TenantManager:
             row = cur.fetchone()
         return self._row_to_tenant(row) if row else None
 
+    def get_stripe_customer_id(self, tenant_id: str) -> Optional[str]:
+        """Devuelve el stripe_customer_id del tenant, o None."""
+        if not is_valid_tenant_id(tenant_id):
+            raise ValueError(f"tenant_id inválido: {tenant_id!r}")
+        conn = self.get_conn()
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT stripe_customer_id FROM tenants WHERE tenant_id = %s",
+                (tenant_id,),
+            )
+            row = cur.fetchone()
+        return row[0] if row and row[0] else None
+
     def set_billing(
         self,
         tenant_id: str,

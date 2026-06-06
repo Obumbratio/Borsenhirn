@@ -12,7 +12,10 @@ from datetime import datetime, timezone
 from fastapi import FastAPI, Depends, Request, HTTPException
 from pydantic import BaseModel
 import borsenhirn.db as bdb
-from borsenhirn.auth.deps import get_current_tenant, get_tenant_manager
+import os
+from borsenhirn.auth.deps import (
+    get_current_tenant, get_active_tenant, get_tenant_manager,
+)
 from borsenhirn.billing import get_billing_provider, BillingError, apply_stripe_event
 # NOTA: core.cache (redis) y core.database (sqlalchemy) se importan LAZY dentro
 # de los endpoints que los usan (/status, /signal). Así la API — y en especial
@@ -65,13 +68,51 @@ def me(tenant_id: str = Depends(get_current_tenant)):
 
 
 @app.get("/me/trades/count")
-def my_trades_count(tenant_id: str = Depends(get_current_tenant)):
-    """Cuenta los trades del tenant autenticado — corre bajo RLS context."""
+def my_trades_count(tenant_id: str = Depends(get_active_tenant)):
+    """Cuenta los trades del tenant — requiere suscripción activa (gating B4.5)."""
     with bdb.get_conn(role="app") as conn, bdb.set_tenant(conn, tenant_id):
         with conn.cursor() as cur:
             cur.execute("SELECT count(*) FROM bot_trade_outcomes")
             n = cur.fetchone()[0]
     return {"tenant_id": tenant_id, "trades": n}
+
+
+@app.post("/billing/checkout")
+def billing_checkout(
+    tenant_id: str = Depends(get_current_tenant),
+    provider=Depends(get_billing_provider),
+    tm=Depends(get_tenant_manager),
+):
+    """Crea una Checkout Session de Stripe. Accesible aun si está suspendido."""
+    tenant = tm.get_tenant(tenant_id)
+    cid = tm.get_stripe_customer_id(tenant_id)
+    if not cid:
+        cid = provider.create_customer(tenant.email, tenant_id)
+        tm.set_billing(tenant_id, customer_id=cid)
+    trial = os.getenv("STRIPE_TRIAL_DAYS")
+    trial_days = int(trial) if trial and trial.isdigit() else None
+    url = provider.create_checkout_session(
+        cid,
+        os.getenv("BILLING_SUCCESS_URL", "https://app.borsenhirn.local/billing/ok"),
+        os.getenv("BILLING_CANCEL_URL", "https://app.borsenhirn.local/billing/cancel"),
+        trial_days=trial_days,
+    )
+    return {"url": url}
+
+
+@app.post("/billing/portal")
+def billing_portal(
+    tenant_id: str = Depends(get_current_tenant),
+    provider=Depends(get_billing_provider),
+    tm=Depends(get_tenant_manager),
+):
+    """Crea una Billing Portal Session para gestionar/cancelar la suscripción."""
+    cid = tm.get_stripe_customer_id(tenant_id)
+    if not cid:
+        raise HTTPException(status_code=409, detail="el tenant no tiene customer de Stripe")
+    url = provider.create_portal_session(
+        cid, os.getenv("BILLING_PORTAL_RETURN_URL", "https://app.borsenhirn.local/billing"))
+    return {"url": url}
 
 
 @app.post("/webhooks/stripe")

@@ -34,19 +34,27 @@ def _me(tenant_id: str = Depends(deps.get_current_tenant)):
     return {"tenant_id": tenant_id}
 
 
+@mini_app.get("/me/active")
+def _me_active(tenant_id: str = Depends(deps.get_active_tenant)):
+    return {"tenant_id": tenant_id}
+
+
 @mini_app.get("/health")
 def _health():
     return {"status": "ok"}
 
 
 class _FakeTenant:
-    def __init__(self, tid):
+    def __init__(self, tid, status="active"):
         self.tenant_id = tid
+        self.status = status
 
 
 class _FakeManager:
+    def __init__(self, status="active"):
+        self.status = status
     def provision_for_clerk_user(self, sub, email, name):
-        return _FakeTenant(FAKE_TID)
+        return _FakeTenant(FAKE_TID, status=self.status)
 
 
 def _token(sub="user_deps_1", exp_delta=60, **extra):
@@ -91,3 +99,25 @@ def test_me_with_valid_token_returns_tenant(client):
 
 def test_health_stays_public(client):
     assert client.get("/health").status_code == 200
+
+
+# ── gating (B4.5): get_active_tenant ────────────────────────────
+
+def test_active_tenant_ok_when_active(client):
+    r = client.get("/me/active", headers={"Authorization": f"Bearer {_token()}"})
+    assert r.status_code == 200
+    assert r.json()["tenant_id"] == FAKE_TID
+
+
+def test_active_tenant_402_when_suspended():
+    # manager que devuelve un tenant suspendido (pago fallido/cancelado)
+    mini_app.dependency_overrides[deps.get_verifier] = lambda: StaticTokenVerifier(SECRET)
+    mini_app.dependency_overrides[deps.get_tenant_manager] = lambda: _FakeManager(status="suspended")
+    try:
+        c = TestClient(mini_app)
+        r = c.get("/me/active", headers={"Authorization": f"Bearer {_token()}"})
+        assert r.status_code == 402
+        # pero el endpoint NO gated sigue accesible (para poder ir a pagar)
+        assert c.get("/me", headers={"Authorization": f"Bearer {_token()}"}).status_code == 200
+    finally:
+        mini_app.dependency_overrides.clear()

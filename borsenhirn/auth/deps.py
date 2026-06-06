@@ -74,15 +74,12 @@ def _extract_bearer(authorization: Optional[str]) -> str:
     return token
 
 
-def get_current_tenant(
+def _resolved_tenant(
     authorization: Optional[str] = Header(default=None),
     verifier: TokenVerifier = Depends(get_verifier),
     tm: TenantManager = Depends(get_tenant_manager),
-) -> str:
-    """
-    Verifica el JWT y devuelve el `tenant_id` del usuario (provisionado lazy).
-    Lanza 401 si el token falta o es inválido.
-    """
+):
+    """Verifica el JWT y provisiona/resuelve el Tenant (objeto). 401 si inválido."""
     token = _extract_bearer(authorization)
     try:
         claims = verifier.verify(token)
@@ -92,11 +89,31 @@ def get_current_tenant(
             detail=f"token inválido: {exc}",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    tenant = tm.provision_for_clerk_user(
+    return tm.provision_for_clerk_user(
         claims.sub,
         claims.email_for_provisioning(),
         claims.name_for_provisioning(),
     )
+
+
+def get_current_tenant(tenant=Depends(_resolved_tenant)) -> str:
+    """`tenant_id` de cualquier usuario autenticado (SIN gating de status).
+
+    Para endpoints accesibles aun con suscripción inactiva (p.ej. billing,
+    para que un tenant suspendido pueda volver a pagar)."""
+    return tenant.tenant_id
+
+
+def get_active_tenant(tenant=Depends(_resolved_tenant)) -> str:
+    """`tenant_id` SOLO si el tenant está `active` (gating de billing, B4.5).
+
+    Si la suscripción está suspendida/cancelada → 402, para que el frontend
+    mande al usuario a pagar."""
+    if getattr(tenant, "status", None) != "active":
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail=f"suscripción inactiva (status={getattr(tenant, 'status', None)})",
+        )
     return tenant.tenant_id
 
 
@@ -106,4 +123,5 @@ __all__ = [
     "get_admin_conn",
     "get_tenant_manager",
     "get_current_tenant",
+    "get_active_tenant",
 ]
