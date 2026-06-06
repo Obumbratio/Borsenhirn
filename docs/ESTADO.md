@@ -34,7 +34,9 @@ así la API y los endpoints `/me` corren sin esas libs. Baseline 323 passed.
 **B4 (Stripe billing): en progreso.** Plan: [B4_BILLING_PLAN.md](B4_BILLING_PLAN.md).
 - B4.1 ✅ columnas de billing en `tenants` (stripe_customer_id UNIQUE, subscription_id,
   plan, current_period_end) + `TenantManager.get_tenant_by_stripe_customer_id` / `set_billing`.
-- B4.2 ⏳ `BillingProvider` (Stripe) + `FakeBillingProvider` + SDK stripe.
+- B4.2 ✅ `borsenhirn/billing/`: `BillingProvider` + `StripeBillingProvider` +
+  `FakeBillingProvider` + factory + mapeo stripe_status→tenant_status. 16 tests
+  (firma de webhook verificada offline). SDK `stripe==12.5.1` en requirements.
 - B4.3 ⏳ webhook handler (verifica firma + sync tenant.status). B4.4 checkout/portal. B4.5 gating.
 
 ## Estado del Bloque 5 (refactor capa de app)
