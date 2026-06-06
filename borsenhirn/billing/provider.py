@@ -160,11 +160,29 @@ def build_billing_provider_from_env() -> BillingProvider:
     raise ValueError(f"BILLING_PROVIDER desconocido: {kind!r}")
 
 
+# Singleton lazy (para usar como FastAPI dependency).
+_provider: Optional[BillingProvider] = None
+
+
+def get_billing_provider() -> BillingProvider:
+    global _provider
+    if _provider is None:
+        _provider = build_billing_provider_from_env()
+    return _provider
+
+
+def reset_billing_provider() -> None:
+    global _provider
+    _provider = None
+
+
 __all__ = [
     "BillingProvider",
     "BillingError",
     "StripeBillingProvider",
     "FakeBillingProvider",
     "build_billing_provider_from_env",
+    "get_billing_provider",
+    "reset_billing_provider",
     "stripe_status_to_tenant_status",
 ]

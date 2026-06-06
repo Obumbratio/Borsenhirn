@@ -9,10 +9,11 @@ Endpoints autenticados (B3, Clerk JWT -> tenant): /me, /me/trades/count.
 """
 import logging
 from datetime import datetime, timezone
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Request, HTTPException
 from pydantic import BaseModel
 import borsenhirn.db as bdb
-from borsenhirn.auth.deps import get_current_tenant
+from borsenhirn.auth.deps import get_current_tenant, get_tenant_manager
+from borsenhirn.billing import get_billing_provider, BillingError, apply_stripe_event
 # NOTA: core.cache (redis) y core.database (sqlalchemy) se importan LAZY dentro
 # de los endpoints que los usan (/status, /signal). Así la API — y en especial
 # los endpoints de auth /me — se importan y corren aunque esas libs no estén
@@ -71,6 +72,22 @@ def my_trades_count(tenant_id: str = Depends(get_current_tenant)):
             cur.execute("SELECT count(*) FROM bot_trade_outcomes")
             n = cur.fetchone()[0]
     return {"tenant_id": tenant_id, "trades": n}
+
+
+@app.post("/webhooks/stripe")
+async def stripe_webhook(
+    request: Request,
+    provider=Depends(get_billing_provider),
+    tm=Depends(get_tenant_manager),
+):
+    """Webhook de Stripe: verifica firma y sincroniza tenant.status (B4.3)."""
+    payload = await request.body()
+    sig = request.headers.get("stripe-signature", "")
+    try:
+        event = provider.parse_webhook(payload, sig)
+    except BillingError:
+        raise HTTPException(status_code=400, detail="webhook inválido")
+    return apply_stripe_event(event, tm)
 
 
 @app.get("/health")

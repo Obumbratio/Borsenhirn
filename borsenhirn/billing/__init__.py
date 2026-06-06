@@ -12,8 +12,11 @@ from borsenhirn.billing.provider import (
     StripeBillingProvider,
     FakeBillingProvider,
     build_billing_provider_from_env,
+    get_billing_provider,
+    reset_billing_provider,
     stripe_status_to_tenant_status,
 )
+from borsenhirn.billing.webhook import apply_stripe_event
 
 __all__ = [
     "BillingProvider",
@@ -21,5 +24,8 @@ __all__ = [
     "StripeBillingProvider",
     "FakeBillingProvider",
     "build_billing_provider_from_env",
+    "get_billing_provider",
+    "reset_billing_provider",
     "stripe_status_to_tenant_status",
+    "apply_stripe_event",
 ]

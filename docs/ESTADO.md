@@ -37,7 +37,8 @@ así la API y los endpoints `/me` corren sin esas libs. Baseline 323 passed.
 - B4.2 ✅ `borsenhirn/billing/`: `BillingProvider` + `StripeBillingProvider` +
   `FakeBillingProvider` + factory + mapeo stripe_status→tenant_status. 16 tests
   (firma de webhook verificada offline). SDK `stripe==12.5.1` en requirements.
-- B4.3 ⏳ webhook handler (verifica firma + sync tenant.status). B4.4 checkout/portal. B4.5 gating.
+- B4.3 ✅ `apply_stripe_event` + endpoint `/webhooks/stripe` (verifica firma, sync tenant.status). 8 tests.
+- B4.4 ⏳ endpoints checkout/portal. B4.5 ⏳ gating por status. Baseline 347 passed.
 
 ## Estado del Bloque 5 (refactor capa de app)
 | Sub-bloque | Qué | Estado | Commit |

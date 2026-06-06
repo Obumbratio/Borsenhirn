@@ -2099,6 +2099,7 @@ requests==2.33.1 \
     #   -r requirements.in
     #   alpaca-py
     #   streamlit
+    #   stripe
     #   yfinance
 rich==15.0.0 \
     --hash=sha256:33bd4ef74232fb73fe9279a257718407f169c09b78a87ad3d296f548e27de0bb \
@@ -2395,6 +2396,10 @@ streamlit==1.56.0 \
     --hash=sha256:1176acfa89ae1318b79078e8efe689a9d02e8d58e325c00fc0e55fa2f3fe8d6a \
     --hash=sha256:8677a335734a30a51bc57ad0ec910e365d95f7c456fc02c60032927cd0729dc5
     # via -r requirements.in
+stripe==12.5.1 \
+    --hash=sha256:39b47b331dfe933ce6cf6bd654e0ae9ba082caa9d1dd8d0ae9ae48293975f115 \
+    --hash=sha256:5407d092c355c31393e767d2dcb2d5a8c3980caa9a073acb32d0ccb3c01b04b5
+    # via -r requirements.in
 ta==0.11.0 \
     --hash=sha256:de86af43418420bd6b088a2ea9b95483071bf453c522a8441bc2f12bcf8493fd
     # via -r requirements.in
@@ -2443,6 +2448,7 @@ typing-extensions==4.15.0 \
     #   pydantic
     #   pydantic-core
     #   streamlit
+    #   stripe
     #   typing-inspection
 typing-inspection==0.4.2 \
     --hash=sha256:4ed1cacbdc298c220f1bd249ed5287caa16f34d44ef4e9c3d0cbad5b521545e7 \
