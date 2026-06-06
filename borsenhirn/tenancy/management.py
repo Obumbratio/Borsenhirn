@@ -215,6 +215,69 @@ class TenantManager:
             f"no se pudo provisionar ni resolver clerk_user={clerk_user_id!r}"
         )
 
+    # ── billing (B4) ─────────────────────────────────────
+
+    def get_tenant_by_stripe_customer_id(self, customer_id: str) -> Optional[Tenant]:
+        """Devuelve el Tenant con ese stripe_customer_id, o None (lookup de webhook)."""
+        if not customer_id:
+            raise ValueError("customer_id vacío")
+        sql = """
+            SELECT tenant_id, slug, email, display_name, status,
+                   created_at, updated_at, suspended_at, metadata
+              FROM tenants
+             WHERE stripe_customer_id = %s
+        """
+        conn = self.get_conn()
+        with conn.cursor() as cur:
+            cur.execute(sql, (customer_id,))
+            row = cur.fetchone()
+        return self._row_to_tenant(row) if row else None
+
+    def set_billing(
+        self,
+        tenant_id: str,
+        *,
+        customer_id: Optional[str] = None,
+        subscription_id: Optional[str] = None,
+        plan: Optional[str] = None,
+        status: Optional[str] = None,
+        current_period_end=None,
+    ) -> None:
+        """
+        Actualiza los campos de billing del tenant (los que se pasen).
+        `status` se valida contra el CHECK de tenants; el mapeo
+        stripe_status -> status lo hace la capa de billing (B4.3).
+        """
+        if not is_valid_tenant_id(tenant_id):
+            raise ValueError(f"tenant_id inválido: {tenant_id!r}")
+        fields, params = [], []
+        if customer_id is not None:
+            fields.append("stripe_customer_id = %s"); params.append(customer_id)
+        if subscription_id is not None:
+            fields.append("stripe_subscription_id = %s"); params.append(subscription_id)
+        if plan is not None:
+            fields.append("plan = %s"); params.append(plan)
+        if current_period_end is not None:
+            fields.append("current_period_end = %s"); params.append(current_period_end)
+        if status is not None:
+            if status not in ("active", "suspended", "disabled", "deleted"):
+                raise ValueError(f"status inválido: {status!r}")
+            fields.append("status = %s"); params.append(status)
+        if not fields:
+            return
+        fields.append("updated_at = now()")
+        sql = f"UPDATE tenants SET {', '.join(fields)} WHERE tenant_id = %s"
+        params.append(tenant_id)
+        conn = self.get_conn()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(sql, params)
+            conn.commit()
+        except Exception as exc:
+            conn.rollback()
+            logger.error("set_billing(%s) falló: %s", tenant_id, exc)
+            raise
+
     # ── list ─────────────────────────────────────────────
 
     def list_tenants(

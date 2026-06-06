@@ -31,6 +31,12 @@ lazy, user_id=tenant_id, solo endpoints nuevos protegidos. Plan: [B3_AUTH_PLAN.m
 `api/main.py` ahora importa LAZY redis/sqlalchemy (solo en `/status` y `/signal`),
 así la API y los endpoints `/me` corren sin esas libs. Baseline 323 passed.
 
+**B4 (Stripe billing): en progreso.** Plan: [B4_BILLING_PLAN.md](B4_BILLING_PLAN.md).
+- B4.1 ✅ columnas de billing en `tenants` (stripe_customer_id UNIQUE, subscription_id,
+  plan, current_period_end) + `TenantManager.get_tenant_by_stripe_customer_id` / `set_billing`.
+- B4.2 ⏳ `BillingProvider` (Stripe) + `FakeBillingProvider` + SDK stripe.
+- B4.3 ⏳ webhook handler (verifica firma + sync tenant.status). B4.4 checkout/portal. B4.5 gating.
+
 ## Estado del Bloque 5 (refactor capa de app)
 | Sub-bloque | Qué | Estado | Commit |
 |---|---|---|---|
