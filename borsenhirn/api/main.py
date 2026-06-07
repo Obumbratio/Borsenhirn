@@ -160,6 +160,13 @@ def billing_portal(
     return {"url": url}
 
 
+@app.get("/me/export")
+def my_export(tenant_id: str = Depends(get_current_tenant)):
+    """Exporta todos los datos del tenant (portabilidad/GDPR, B9). Bajo RLS."""
+    from borsenhirn.backups import export_tenant
+    return export_tenant(tenant_id)
+
+
 @app.get("/me/audit")
 def my_audit(tenant_id: str = Depends(get_current_tenant), limit: int = 50):
     """Lista el audit log del tenant autenticado (su propia traza, bajo RLS)."""

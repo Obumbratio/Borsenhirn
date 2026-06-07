@@ -74,6 +74,13 @@ sobre el tenant SYSTEM), el orquestador saltea todo si está activo, endpoints a
 Audita global_halt/clear. Suite integración: 37 passed. CLAUDE.md sincronizado.
 Ojo numeración: "B1 Bloque 8" (aplicar a prod) ≠ "Roadmap B8 Kill switch".
 
+**B9 (Backups): COMPLETO.** Plan: [B9_BACKUPS_PLAN.md](B9_BACKUPS_PLAN.md) ·
+runbook: [B9_BACKUP_RUNBOOK.md](B9_BACKUP_RUNBOOK.md). `scripts/db_backup.sh`
+(pg_dump -F c + verificación + retención KEEP, cron-friendly), `scripts/db_restore.sh`
+(restore a DB nueva), y export por tenant (`borsenhirn/backups/export_tenant` +
+`GET /me/export`, excluye user_credentials). Integración completa: 40 passed.
+Falta (aparte): agendar cron + destino offsite en prod.
+
 ## Estado del Bloque 5 (refactor capa de app)
 | Sub-bloque | Qué | Estado | Commit |
 |---|---|---|---|

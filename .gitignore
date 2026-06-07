@@ -41,7 +41,7 @@ Thumbs.db
 *.bak
 *.backup
 versions/
-backups/
+/backups/
 *.dump
 *.sql.gz
 
