@@ -101,6 +101,17 @@ class CredentialStore:
 
     # ── set ───────────────────────────────────────────────
 
+    def _audit(self, action: str, user_id: str, provider: str) -> None:
+        """Audit best-effort (B5). Solo si hay tenant_id (path SaaS)."""
+        if not self.tenant_id:
+            return
+        try:
+            from borsenhirn.audit import get_audit_logger
+            get_audit_logger().record(self.tenant_id, action, resource=provider,
+                                      metadata={"user_id": user_id})
+        except Exception:   # pragma: no cover
+            pass
+
     def set(
         self,
         user_id: str,
@@ -142,6 +153,7 @@ class CredentialStore:
             conn.commit()
             logger.info("Credentials set for user=%s provider=%s",
                         user_id, provider)
+            self._audit("credentials.write", user_id, provider)
         except Exception as exc:
             conn.rollback()
             logger.error("CredentialStore.set falló: %s", exc)
@@ -189,6 +201,7 @@ class CredentialStore:
 
         api_key = self.vault.decrypt(bytes(key_ct))
         api_secret = self.vault.decrypt(bytes(sec_ct))
+        self._audit("credentials.read", user_id, provider)
         return UserCredentials(
             user_id=str(uid),
             provider=prov,
@@ -213,6 +226,7 @@ class CredentialStore:
             if deleted:
                 logger.info("Credentials borradas user=%s provider=%s",
                             user_id, provider)
+                self._audit("credentials.delete", user_id, provider)
             return deleted > 0
         except Exception as exc:
             conn.rollback()

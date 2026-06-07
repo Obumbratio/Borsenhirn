@@ -89,6 +89,12 @@ def _resolved_tenant(
             detail=f"token inválido: {exc}",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    # Actor para el audit log (B5): quién hace la request.
+    try:
+        from borsenhirn.audit import set_actor
+        set_actor(claims.sub)
+    except Exception:   # pragma: no cover
+        pass
     return tm.provision_for_clerk_user(
         claims.sub,
         claims.email_for_provisioning(),

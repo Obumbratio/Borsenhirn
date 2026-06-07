@@ -172,12 +172,25 @@ class KillSwitch:
         return self.store.list_active()
 
     # ── Comandos ──────────────────────────────────────────
+    def _audit_ks(self, action: str, detail: str) -> None:
+        """Audit best-effort (B5). Solo si el store tiene tenant_id."""
+        tid = getattr(self.store, "tenant_id", None)
+        if not tid:
+            return
+        try:
+            from borsenhirn.audit import get_audit_logger
+            get_audit_logger().record(tid, action, resource=(detail or None))
+        except Exception:   # pragma: no cover
+            pass
+
     def manual_halt(self, reason: str = "manual halt via admin") -> None:
         self._trigger(KillReason.MANUAL, reason, {})
+        self._audit_ks("killswitch.halt", reason)
 
     def clear(self, key: KillReason, note: str = "") -> None:
         self.store.clear(key.value, note)
         logger.info("KillSwitch: cleared %s (%s)", key.value, note or "-")
+        self._audit_ks("killswitch.clear", note)
 
     def clear_all(self, note: str = "") -> None:
         for row in self.store.list_active():

@@ -115,6 +115,22 @@ def billing_portal(
     return {"url": url}
 
 
+@app.get("/me/audit")
+def my_audit(tenant_id: str = Depends(get_current_tenant), limit: int = 50):
+    """Lista el audit log del tenant autenticado (su propia traza, bajo RLS)."""
+    limit = max(1, min(int(limit), 200))
+    with bdb.get_conn(role="app") as conn, bdb.set_tenant(conn, tenant_id):
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT id, actor, action, resource, at, metadata "
+                "FROM audit_log ORDER BY at DESC LIMIT %s", (limit,))
+            rows = cur.fetchall()
+    return {"tenant_id": tenant_id, "events": [
+        {"id": r[0], "actor": r[1], "action": r[2], "resource": r[3],
+         "at": r[4].isoformat() if r[4] else None, "metadata": r[5]}
+        for r in rows]}
+
+
 @app.post("/webhooks/stripe")
 async def stripe_webhook(
     request: Request,

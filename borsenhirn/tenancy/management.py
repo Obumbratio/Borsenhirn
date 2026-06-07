@@ -24,6 +24,35 @@ from borsenhirn.tenancy.tenant import (
 logger = logging.getLogger(__name__)
 
 
+# ── Audit hooks (B5) — lazy import + best-effort ───────────────
+
+def _audit_lifecycle(tenant_id: str, new_status, reason) -> None:
+    try:
+        from borsenhirn.tenancy.tenant import TenantStatus
+        from borsenhirn.audit import get_audit_logger, AuditAction
+        action = {
+            TenantStatus.SUSPENDED: AuditAction.TENANT_SUSPENDED,
+            TenantStatus.DISABLED: AuditAction.TENANT_DISABLED,
+            TenantStatus.ACTIVE: AuditAction.TENANT_REACTIVATED,
+        }.get(new_status)
+        if action:
+            get_audit_logger().record(
+                tenant_id, action, resource=(reason or None),
+                metadata={"status": getattr(new_status, "value", str(new_status))})
+    except Exception:   # pragma: no cover - audit nunca rompe la operación
+        pass
+
+
+def _audit_provision(tenant_id: str, clerk_user_id: str) -> None:
+    try:
+        from borsenhirn.audit import get_audit_logger, AuditAction
+        get_audit_logger().record(
+            tenant_id, AuditAction.TENANT_PROVISIONED,
+            metadata={"clerk_user_id": clerk_user_id})
+    except Exception:   # pragma: no cover
+        pass
+
+
 class TenantManager:
     """
     CRUD de tenants. Recibe `get_conn` callable para no acoplarse al driver.
@@ -206,6 +235,7 @@ class TenantManager:
         if row:
             logger.info("Tenant provisionado para clerk_user=%s -> %s",
                         clerk_user_id, tid)
+            _audit_provision(tid, clerk_user_id)
             return self._row_to_tenant(row)
         # Conflicto: otro request lo creó primero → re-lookup.
         existing = self.get_tenant_by_clerk_id(clerk_user_id)
@@ -360,6 +390,8 @@ class TenantManager:
                 cur.execute(sql, (new_status.value, reason or "", tenant_id))
                 changed = cur.rowcount
             conn.commit()
+            if changed > 0:
+                _audit_lifecycle(tenant_id, new_status, reason)
             return changed > 0
         except Exception as exc:
             conn.rollback()

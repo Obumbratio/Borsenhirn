@@ -63,6 +63,14 @@ def apply_stripe_event(event: Dict[str, Any], tm) -> Dict[str, Any]:
         plan=_extract_plan(obj),
         current_period_end=cpe_dt,
     )
+    try:   # audit (B5) — best-effort
+        from borsenhirn.audit import get_audit_logger, AuditAction
+        get_audit_logger().record(
+            tenant.tenant_id, AuditAction.BILLING_UPDATED, actor="stripe",
+            resource=obj.get("id"),
+            metadata={"stripe_status": sub_status, "tenant_status": new_status, "event": etype})
+    except Exception:   # pragma: no cover
+        pass
     return {
         "handled": True,
         "tenant_id": tenant.tenant_id,
