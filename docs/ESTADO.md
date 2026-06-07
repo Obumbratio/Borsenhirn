@@ -44,6 +44,12 @@ así la API y los endpoints `/me` corren sin esas libs. Baseline 323 passed.
 **Backend de B4 COMPLETO.** Para Stripe real: `BILLING_PROVIDER=stripe` + STRIPE_* en `.env`.
 Falta (aparte): frontend (botones checkout/portal) + migración billing a prod. Baseline 354 passed.
 
+**B5 (Audit log): en progreso.** Plan: [B5_AUDIT_PLAN.md](B5_AUDIT_PLAN.md). Decidido:
+append-only por permisos, las 4 categorías, soft-fail.
+- B5.1 ✅ tabla `audit_log` (RLS + append-only: app role solo INSERT+SELECT). 18/18 con RLS.
+- B5.2 ✅ `borsenhirn/audit/` (`AuditLogger.record` + actor contextvar + soft-fail). 4 unit + 3 e2e.
+- B5.3 ⏳ hooks (credenciales/billing/lifecycle/kill-switch). B5.4 ⏳ endpoint `/me/audit`.
+
 ## Estado del Bloque 5 (refactor capa de app)
 | Sub-bloque | Qué | Estado | Commit |
 |---|---|---|---|
