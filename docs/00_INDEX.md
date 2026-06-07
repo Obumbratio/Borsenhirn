@@ -19,6 +19,7 @@
 - [B7 — cierre (legal)](B7_CLOSEOUT.md)
 - [B8 — cierre (kill switch)](B8_CLOSEOUT.md)
 - [B9 — backups (plan/runbook/cierre)](B9_CLOSEOUT.md)
+- [B10 — cierre (anomaly detection)](B10_CLOSEOUT.md)
 - Börsenhirn SaaS — bloques B1..B10
 - Specula Oeconomica
 - CSUEB / certificaciones
