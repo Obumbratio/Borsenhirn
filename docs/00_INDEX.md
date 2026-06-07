@@ -17,6 +17,7 @@
 - [B6 — cierre (worker isolation)](B6_CLOSEOUT.md)
 - [B7 — plan legal](B7_LEGAL_PLAN.md)
 - [B7 — cierre (legal)](B7_CLOSEOUT.md)
+- [B8 — cierre (kill switch)](B8_CLOSEOUT.md)
 - Börsenhirn SaaS — bloques B1..B10
 - Specula Oeconomica
 - CSUEB / certificaciones
