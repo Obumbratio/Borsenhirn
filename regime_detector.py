@@ -25,11 +25,21 @@ import config
 
 logger = logging.getLogger(__name__)
 
-# ── Estado interno del módulo ─────────────────────────────────────────────────
+# ── Estado interno del módulo (encapsulado para evitar problemas con globals) ─
 
-_breadth_cache = {"value": None, "timestamp": None}
-_regime_history = []   # últimos N regímenes sin filtrar (para histéresis)
-_confirmed_regime = None  # último régimen confirmado por histéresis
+class _RegimeState:
+    """Encapsula el estado mutable del detector de régimen."""
+    def __init__(self):
+        self.breadth_cache = {"value": None, "timestamp": None}
+        self.regime_history = []
+        self.confirmed_regime = None
+
+    def reset(self):
+        self.breadth_cache = {"value": None, "timestamp": None}
+        self.regime_history = []
+        self.confirmed_regime = None
+
+_state = _RegimeState()
 
 
 def _calc_adx(df: pd.DataFrame, period: int = 14) -> float:
@@ -51,15 +61,13 @@ def _calc_breadth(fetcher) -> float:
     Porcentaje de símbolos del watchlist que cierran sobre su SMA50 (diario).
     Resultado cacheado REGIME_BREADTH_CACHE_MIN minutos.
     """
-    global _breadth_cache
-
     now       = datetime.now(timezone.utc)
-    cached_ts = _breadth_cache.get("timestamp")
+    cached_ts = _state.breadth_cache.get("timestamp")
     cache_secs = config.REGIME_BREADTH_CACHE_MIN * 60
 
     if cached_ts is not None and (now - cached_ts).total_seconds() < cache_secs:
         logger.debug("[REGIME] Breadth desde caché.")
-        return _breadth_cache["value"]
+        return _state.breadth_cache["value"]
 
     above   = 0
     total   = 0
@@ -80,8 +88,8 @@ def _calc_breadth(fetcher) -> float:
             pass   # si un símbolo falla, lo ignoramos y continuamos
 
     breadth = (above / total) if total > 0 else 0.5
-    _breadth_cache["value"]     = breadth
-    _breadth_cache["timestamp"] = now
+    _state.breadth_cache["value"]     = breadth
+    _state.breadth_cache["timestamp"] = now
     logger.info(f"[REGIME] Breadth: {above}/{total} = {breadth:.1%} sobre SMA50")
     return breadth
 
@@ -149,24 +157,22 @@ def _apply_hysteresis(raw_regime: str) -> str:
     Requiere config.REGIME_HYSTERESIS_CYCLES ciclos consecutivos
     del mismo régimen antes de confirmar el cambio de estado.
     """
-    global _regime_history, _confirmed_regime
-
-    _regime_history.append(raw_regime)
+    _state.regime_history.append(raw_regime)
     # Mantener solo la ventana necesaria
     window = config.REGIME_HYSTERESIS_CYCLES + 1
-    if len(_regime_history) > window:
-        _regime_history = _regime_history[-window:]
+    if len(_state.regime_history) > window:
+        _state.regime_history = _state.regime_history[-window:]
 
     # ¿Los últimos N ciclos coinciden?
     n = config.REGIME_HYSTERESIS_CYCLES
-    if len(_regime_history) >= n and len(set(_regime_history[-n:])) == 1:
-        _confirmed_regime = raw_regime
+    if len(_state.regime_history) >= n and len(set(_state.regime_history[-n:])) == 1:
+        _state.confirmed_regime = raw_regime
 
     # Si aún no hay régimen confirmado, usar el primero de la historia
-    if _confirmed_regime is None:
-        _confirmed_regime = raw_regime
+    if _state.confirmed_regime is None:
+        _state.confirmed_regime = raw_regime
 
-    return _confirmed_regime
+    return _state.confirmed_regime
 
 
 def detect_regime(fetcher, market_ctx: dict = None) -> dict:

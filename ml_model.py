@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.metrics import classification_report, confusion_matrix, precision_score, recall_score, f1_score
 import config
 
 logger = logging.getLogger(__name__)
@@ -47,11 +47,12 @@ class TradingModel:
         valid    = labels.dropna().index
         X_raw    = df.loc[valid, fc].values
         y        = labels.loc[valid].values
+        split    = int(len(X_raw) * 0.8)
+        Xtr_raw, Xte_raw = X_raw[:split], X_raw[split:]
+        ytr, yte = y[:split], y[split:]
         self.scaler = StandardScaler()
-        X        = self.scaler.fit_transform(X_raw)
-        split    = int(len(X) * 0.8)
-        Xtr,Xte  = X[:split], X[split:]
-        ytr,yte  = y[:split], y[split:]
+        Xtr = self.scaler.fit_transform(Xtr_raw)
+        Xte = self.scaler.transform(Xte_raw)
         logger.info(f"Entrenando RF con {len(Xtr)} muestras...")
         self.model = RandomForestClassifier(
             n_estimators=config.RF_N_ESTIMATORS,
@@ -60,10 +61,15 @@ class TradingModel:
         self.model.fit(Xtr, ytr)
         yp  = self.model.predict(Xte)
         acc = (yp == yte).mean()
-        logger.info(f"Accuracy test: {acc:.4f}")
+        prec = precision_score(yte, yp, zero_division=0)
+        rec  = recall_score(yte, yp, zero_division=0)
+        f1   = f1_score(yte, yp, zero_division=0)
+        logger.info(f"Accuracy test: {acc:.4f} | Precision: {prec:.4f} | Recall: {rec:.4f} | F1: {f1:.4f}")
         logger.info("\n" + classification_report(yte, yp))
         self.save_model()
-        return {"accuracy": acc, "confusion_matrix": confusion_matrix(yte, yp).tolist()}
+        return {"accuracy": acc, "precision": prec, "recall": rec, "f1": f1,
+                "n_samples": len(Xtr) + len(Xte),
+                "confusion_matrix": confusion_matrix(yte, yp).tolist()}
 
     def save_model(self):
         os.makedirs(os.path.dirname(self.model_path), exist_ok=True)

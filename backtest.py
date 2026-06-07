@@ -36,10 +36,18 @@ def run_backtest(symbol, start, end, timeframe, capital, train_model):
     equity_curve, trades_log = [], []
     min_w = config.MA_LONG_WINDOW + 10
 
+    # Contexto de mercado por defecto para backtest (sin llamadas API en vivo)
+    market_ctx = {
+        "vix": {"value": None},
+        "fear_greed": {"value": None},
+        "market_signal": "neutral",
+        "earnings": {"has_earnings": False, "days_away": 99},
+    }
+
     for i in range(min_w, len(df)):
         win   = df.iloc[:i]
         price = float(win["close"].iloc[-1])
-        sig   = strategy.generate_signal(win)
+        sig   = strategy.generate_signal(win, market_ctx)
         pv    = cash + shares * price
         equity_curve.append({"timestamp": win.index[-1], "equity": pv})
 

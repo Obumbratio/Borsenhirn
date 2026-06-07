@@ -1,0 +1,80 @@
+{
+  "Berkshire Hathaway (Buffett)": {
+    "AXP": {
+      "shares": 149061045,
+      "value": 55145133598000
+    },
+    "AAPL": {
+      "shares": 2712000,
+      "value": 737284320000
+    },
+    "OXY": {
+      "shares": 264941431,
+      "value": 10894391643000
+    },
+    "CVX": {
+      "shares": 11545828,
+      "value": 1759699645000
+    },
+    "GOOGL": {
+      "shares": 17846142,
+      "value": 5585842446000
+    },
+    "UNH": {
+      "shares": 1954900,
+      "value": 645332039000
+    }
+  },
+  "Pershing Square (Ackman)": {
+    "AMZN": {
+      "shares": 9607824,
+      "value": 2217677936000
+    },
+    "GOOGL": {
+      "shares": 678297,
+      "value": 212306961000
+    },
+    "META": {
+      "shares": 2673569,
+      "value": 1764796161000
+    }
+  },
+  "Bridgewater Associates (Dalio)": {
+    "NVDA": {
+      "shares": 3865205,
+      "value": 720860733000
+    },
+    "CRM": {
+      "shares": 1932066,
+      "value": 511823604000
+    },
+    "GOOGL": {
+      "shares": 1590826,
+      "value": 497928538000
+    },
+    "MSFT": {
+      "shares": 984091,
+      "value": 475926089000
+    },
+    "AMZN": {
+      "shares": 1948254,
+      "value": 449695988000
+    },
+    "AMD": {
+      "shares": 1656527,
+      "value": 354761822000
+    },
+    "JNJ": {
+      "shares": 1313958,
+      "value": 271923608000
+    },
+    "META": {
+      "shares": 223701,
+      "value": 147662793000
+    },
+    "WFC": {
+      "shares": 1141540,
+      "value": 106391528000
+    }
+  }
+}

@@ -1,6 +1,5 @@
 # Credenciales y configuración sensible
 .env
-*.env
 
 # Modelos entrenados
 models/
@@ -40,4 +39,35 @@ Thumbs.db
 
 # Backups
 *.bak
+*.backup
 versions/
+/backups/
+*.dump
+*.sql.gz
+
+# ── Sprint B1 cleanup ────────────────────────────────────
+.claude/settings.local.json
+.coverage
+.coverage.*
+htmlcov/
+pytest-cache-files-*/
+.pytest_cache/
+.streamlit/secrets.toml
+.env.dev
+.env.local
+
+# ── Blindaje extra (sistema de contexto/sync) ────────────
+# Cualquier .env queda fuera; solo .env.example es público.
+.env.*
+!.env.example
+# Llaves y certificados sueltos
+*.key
+*.pem
+# Bases de datos locales con datos reales
+*.sqlite
+*.db
+# Volcados de repo (pueden contener secretos)
+repomix-output.*
+# Frontend Next.js
+node_modules/
+.next/

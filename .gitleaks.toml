@@ -1,0 +1,27 @@
+# Config de gitleaks para Börsenhirn / proyecto_trading
+# Usa las reglas por defecto de gitleaks y añade un allowlist
+# para evitar falsos positivos en plantillas con placeholders.
+title = "borsenhirn gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Plantillas y placeholders (no son secretos reales)"
+
+# Archivos que solo contienen ejemplos/placeholders.
+paths = [
+  '''\.env\.example$''',
+]
+
+# Patrones de placeholder usados en la documentación y plantillas.
+regexes = [
+  '''xxxxx''',
+  '''sk-ant-xxxxx''',
+  '''sk_test_xxxxx''',
+  '''user:pass@localhost''',
+  # Ejemplos ilustrativos en SECRETS.md (NO son llaves reales):
+  '''Z2VuZXJhdGVkLWZlcm5ldC1rZXktaGVyZQ==''',   # base64 de "generated-fernet-key-here"
+  '''PKABCDEF1234567890''',
+  '''abc123secret456''',
+]

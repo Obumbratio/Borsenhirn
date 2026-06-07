@@ -130,9 +130,81 @@ LOG_FORMAT = "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s"
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID   = os.getenv("TELEGRAM_CHAT_ID", "")
 
+# ── Alertas (Discord + Email + Dashboard) ─────────────────────────
+# IMPORTANTE: DISCORD_WEBHOOK_URL es una credencial. Pégala SOLO en .env.
+# Si alguna vez la compartiste, rotá el webhook desde Discord.
+DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL", "")
+
+SMTP_HOST        = os.getenv("SMTP_HOST", "smtp.gmail.com")
+SMTP_PORT        = int(os.getenv("SMTP_PORT", 587))
+SMTP_USER        = os.getenv("SMTP_USER", "")
+SMTP_PASSWORD    = os.getenv("SMTP_PASSWORD", "")
+SMTP_USE_TLS     = os.getenv("SMTP_USE_TLS", "true").lower() == "true"
+ALERT_EMAIL_TO   = [e.strip() for e in os.getenv("ALERT_EMAIL_TO", "").split(",") if e.strip()]
+
+ALERT_DEDUPE_WINDOW_SEC = int(os.getenv("ALERT_DEDUPE_WINDOW_SEC", 300))
+
+# ── Kill switch ───────────────────────────────────────────────────
+KS_MAX_DAILY_LOSS_PCT       = float(os.getenv("KS_MAX_DAILY_LOSS_PCT",
+                                              MAX_DAILY_LOSS_PCT))
+KS_MAX_DRAWDOWN_7D_PCT      = float(os.getenv("KS_MAX_DRAWDOWN_7D_PCT", 0.15))
+KS_MAX_CONSECUTIVE_FAILURES = int(os.getenv("KS_MAX_CONSECUTIVE_FAILURES", 5))
+
+# ── Sanity checks ─────────────────────────────────────────────────
+SANITY_MIN_PRICE          = float(os.getenv("SANITY_MIN_PRICE", 0.5))
+SANITY_MAX_PRICE          = float(os.getenv("SANITY_MAX_PRICE", 100_000))
+SANITY_MAX_QTY_PER_ORDER  = int(os.getenv("SANITY_MAX_QTY_PER_ORDER", 10_000))
+SANITY_WASH_GAP_SEC       = int(os.getenv("SANITY_WASH_GAP_SEC", 300))
+
+# ── Secrets vault (Gap 3 + B2) ────────────────────────────────────
+# Master key Fernet para encriptar credenciales de usuarios SaaS.
+# Generar con: python -c "from borsenhirn.security import generate_master_key; print(generate_master_key())"
+# NUNCA commitear el valor real.
+# B2: se resuelve vía secret provider (archivo montado {VAR}_FILE -> comando
+# {VAR}_CMD del secrets manager -> env var {VAR} en dev). Así la master key
+# sale de .env en producción. Fallback defensivo a os.getenv si el módulo
+# de seguridad no estuviera disponible.
+try:
+    from borsenhirn.security.secret_provider import resolve_secret as _resolve_secret
+    BORSENHIRN_MASTER_KEY = _resolve_secret("BORSENHIRN_MASTER_KEY", default="") or ""
+except Exception:  # pragma: no cover - fallback ante import roto
+    BORSENHIRN_MASTER_KEY = os.getenv("BORSENHIRN_MASTER_KEY", "")
+# Para rotación: temporalmente ambos están seteados.
+BORSENHIRN_NEW_MASTER_KEY = os.getenv("BORSENHIRN_NEW_MASTER_KEY", "")
+
+# ── Legal (B7): versiones vigentes de los docs (al cambiar un doc, bumpear) ──
+LEGAL_TERMS_VERSION   = os.getenv("LEGAL_TERMS_VERSION", "2026-04-24")
+LEGAL_PRIVACY_VERSION = os.getenv("LEGAL_PRIVACY_VERSION", "2026-04-24")
+
+# ── Admin (B8): API key para endpoints admin (kill-switch global). Vacío = deshabilitado. ──
+ADMIN_API_KEY = os.getenv("ADMIN_API_KEY", "")
+
 # ── Fuentes de datos adicionales (todas opcionales) ───────
 FINNHUB_API_KEY      = os.getenv("FINNHUB_API_KEY", "")
 ALPHAVANTAGE_API_KEY = os.getenv("ALPHAVANTAGE_API_KEY", "")
 NEWSAPI_KEY          = os.getenv("NEWSAPI_KEY", "")
 FRED_API_KEY         = os.getenv("FRED_API_KEY", "")
 POLYGON_API_KEY      = os.getenv("POLYGON_API_KEY", "")
+
+DB_HOST     = os.getenv("DB_HOST", "localhost")
+DB_PORT     = int(os.getenv("DB_PORT", 5432))
+DB_NAME     = os.getenv("DB_NAME", "borsenhirn")
+
+# Admin / migration credentials (Postgres superuser).
+# Used ONLY by scripts/ migrations and TenantManager (admin lifecycle).
+# RUNTIME code must NOT use these — it routes through APP_DB_USER below.
+DB_USER     = os.getenv("DB_USER", "postgres")
+# Acepta DB_PASS como alias de DB_PASSWORD: varios .env (incl. .env.dev) y
+# borsenhirn/core/* usan DB_PASS. Sin esto, el pool admin y los scripts admin
+# (ks_admin, rotate_master_key, check_rls_coverage, etc.) tomaban el fallback.
+DB_PASSWORD = os.getenv("DB_PASSWORD") or os.getenv("DB_PASS") or "uriel"
+
+# Application credentials (B1 Sprint - Block 5).
+# Role borsenhirn_app is NOSUPERUSER + NOBYPASSRLS + LOGIN.
+# RLS policies in DB enforce per-tenant isolation against this role.
+# Defaults fall back to admin credentials so single-user dev keeps working
+# without setup; production SaaS deploys MUST set both env vars.
+APP_DB_USER     = os.getenv("APP_DB_USER", DB_USER)
+APP_DB_PASSWORD = os.getenv("APP_DB_PASSWORD", DB_PASSWORD)
+
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")

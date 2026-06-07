@@ -172,6 +172,10 @@ class BotMemory:
             "worst_day":     round(min(r["pnl"] for r in hist), 2),
         }
 
+    def get_performance_history(self, days: int = 30) -> list:
+        """Devuelve filas crudas del historial de performance (para graficas)."""
+        return self.data["performance_history"][-days:]
+
     # ── Trade outcomes ────────────────────────────────────────────
 
     def record_trade_outcome(self, symbol: str, buy_price: float,

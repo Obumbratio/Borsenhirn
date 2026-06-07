@@ -1,0 +1,26 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Bitácora Nocturna — Streamlit theme tokens
+# Identidad visual del dashboard de Börsenhirn.
+# Toda la paleta extendida vive en bitacora_theme.py · esto es solo el chrome.
+# ─────────────────────────────────────────────────────────────────────────────
+
+[theme]
+base                       = "dark"
+primaryColor               = "#C9A96A"   # ámbar — acento, regime metadata
+backgroundColor            = "#0F0D0A"   # fondo principal · noche profunda
+secondaryBackgroundColor   = "#1A1610"   # tarjetas y secciones
+textColor                  = "#E8DEC9"   # texto pergamino
+font                       = "serif"
+
+[server]
+headless                   = true
+runOnSave                  = false
+
+[browser]
+gatherUsageStats           = false
+
+[client]
+toolbarMode                = "minimal"
+
+[ui]
+hideTopBar                 = false

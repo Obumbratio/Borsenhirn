@@ -1,6 +1,23 @@
-import os, csv, logging, logging.handlers, requests
-from datetime import datetime
+import os, csv, logging, logging.handlers, requests, time
+from datetime import datetime, timezone
 import config
+
+_last_telegram_send = 0.0
+
+# Hook opcional hacia borsenhirn.safety.alerts.AlertManager.
+# Si está registrado, TODA llamada a send_alert() también le llega.
+_external_alerter = None
+
+
+def register_external_alerter(fn):
+    """
+    Registra una función `fn(level: str, message: str)` que se invocará en
+    cada send_alert(). Usado por borsenhirn/safety para reenviar a Discord
+    + Email sin tocar las llamadas existentes.
+    Pasa fn=None para desactivar.
+    """
+    global _external_alerter
+    _external_alerter = fn
 
 def setup_logging():
     import sys
@@ -28,7 +45,7 @@ def setup_logging():
 def log_trade(action, symbol, price, qty, reason):
     os.makedirs(os.path.dirname(config.TRADES_LOG), exist_ok=True)
     exists = os.path.isfile(config.TRADES_LOG)
-    row = {"timestamp":datetime.utcnow().isoformat(),"action":action,
+    row = {"timestamp":datetime.now(timezone.utc).isoformat(),"action":action,
            "symbol":symbol,"price":price,"qty":qty,
            "value":round(price*qty,2),"reason":reason}
     with open(config.TRADES_LOG,"a",newline="",encoding="utf-8") as f:
@@ -37,12 +54,33 @@ def log_trade(action, symbol, price, qty, reason):
         w.writerow(row)
     logging.getLogger(__name__).info(f"TRADE | {action.upper()} {qty}x{symbol} @ {price:.2f}")
 
-def send_alert(message):
-    logging.getLogger(__name__).info(f"ALERTA: {message}")
+def send_alert(message, level="INFO"):
+    """
+    Emite una alerta. Siempre loguea; si hay Telegram configurado envía
+    por Telegram; si hay un external_alerter registrado (p.ej. Discord +
+    Email + Dashboard via borsenhirn.safety) también lo invoca.
+
+    `level` acepta "INFO" | "WARN" | "CRITICAL".
+    """
+    global _last_telegram_send
+    logging.getLogger(__name__).info(f"ALERTA [{level}]: {message}")
+
+    # Hook externo (Discord / Email / Dashboard)
+    if _external_alerter is not None:
+        try:
+            _external_alerter(level, message)
+        except Exception as e:
+            logging.getLogger(__name__).error(f"external_alerter: {e}")
+
+    # Legacy: Telegram
     if config.TELEGRAM_BOT_TOKEN and config.TELEGRAM_CHAT_ID:
+        elapsed = time.monotonic() - _last_telegram_send
+        if elapsed < 1.0:
+            time.sleep(1.0 - elapsed)
         try:
             requests.post(f"https://api.telegram.org/bot{config.TELEGRAM_BOT_TOKEN}/sendMessage",
                           json={"chat_id":config.TELEGRAM_CHAT_ID,"text":f"🤖 Bot\n{message}"},
                           timeout=5)
+            _last_telegram_send = time.monotonic()
         except Exception as e:
             logging.getLogger(__name__).error(f"Telegram: {e}")

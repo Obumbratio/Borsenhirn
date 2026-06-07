@@ -110,11 +110,17 @@ class TradingStrategy:
                          float(macd_col.iloc[-2]) >= float(macd_s.iloc[-2]))
 
             # ── Volumen ───────────────────────────────────────
-            # No comprar si el volumen actual es menor al 80% del promedio 20 dias
-            # Volumen bajo = señal debil, el mercado no esta convencido
+            # Umbral de volumen dinámico según régimen de mercado:
+            # BEAR = 60% (más permisivo, volumen naturalmente bajo)
+            # BULL/default = 80%
             vol_now = float(df.iloc[-1].get("volume", 0))
             vol_avg = float(df["volume"].iloc[-20:].mean()) if "volume" in df.columns and len(df) >= 20 else vol_now
-            vol_ok  = vol_now >= vol_avg * 0.8 if vol_avg > 0 else True
+            vol_threshold = 0.8
+            if market_ctx:
+                regime = market_ctx.get("regime", "")
+                if regime == "BEAR":
+                    vol_threshold = 0.6
+            vol_ok  = vol_now >= vol_avg * vol_threshold if vol_avg > 0 else True
 
             # ── Stop-loss dinamico ────────────────────────────
             # Basado en el minimo reciente como soporte + buffer ATR.
@@ -176,7 +182,7 @@ class TradingStrategy:
             if earnings_risk:
                 logger.info(f"Compra BLOQUEADA por earnings proximos")
             if not vol_ok:
-                logger.info(f"Compra BLOQUEADA por volumen bajo ({vol_now:,.0f} < {vol_avg*0.8:,.0f})")
+                logger.info(f"Compra BLOQUEADA por volumen bajo ({vol_now:,.0f} < {vol_avg*vol_threshold:,.0f}, umbral={vol_threshold:.0%})")
 
             # ════════════════════════════════════════
             # CONDICIONES DE VENTA

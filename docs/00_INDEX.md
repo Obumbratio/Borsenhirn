@@ -1,0 +1,25 @@
+# ÍNDICE del vault
+- [Estado actual](ESTADO.md)
+- [Plan / misión SaaS + decisiones](PLAN.md)
+- [Bitácora de errores](ERRORES.md)
+- [Hoja de comandos manuales](COMANDOS.md)
+- [Log B1 por bloque](B1_SESSION_LOG.md)
+- [B1 — capa de aplicación multi-tenant](B1_APP_LAYER.md)
+- [B1 Bloque 8 — plan de aplicación a producción](B1_BLOCK8_PLAN.md)
+- [B1 — cierre del sprint](B1_CLOSEOUT.md)
+- [B3 — plan de auth con Clerk](B3_AUTH_PLAN.md)
+- [B3 — cierre (backend de auth)](B3_CLOSEOUT.md)
+- [B4 — plan de billing con Stripe](B4_BILLING_PLAN.md)
+- [B4 — cierre (backend de billing)](B4_CLOSEOUT.md)
+- [B5 — plan de audit log](B5_AUDIT_PLAN.md)
+- [B5 — cierre (audit log)](B5_CLOSEOUT.md)
+- [B6 — plan de worker isolation](B6_WORKERS_PLAN.md)
+- [B6 — cierre (worker isolation)](B6_CLOSEOUT.md)
+- [B7 — plan legal](B7_LEGAL_PLAN.md)
+- [B7 — cierre (legal)](B7_CLOSEOUT.md)
+- [B8 — cierre (kill switch)](B8_CLOSEOUT.md)
+- [B9 — backups (plan/runbook/cierre)](B9_CLOSEOUT.md)
+- [B10 — cierre (anomaly detection)](B10_CLOSEOUT.md)
+- Börsenhirn SaaS — bloques B1..B10
+- Specula Oeconomica
+- CSUEB / certificaciones

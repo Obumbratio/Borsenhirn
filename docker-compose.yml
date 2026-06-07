@@ -1,0 +1,52 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: borsenhirn
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: uriel
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  bot:
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: borsenhirn
+      DB_USER: postgres
+      DB_PASSWORD: uriel
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./logs:/app/logs
+      - ./models:/app/models
+      - ./results:/app/results
+      - ./reports:/app/reports
+
+  dashboard:
+    build: .
+    command: streamlit run dashboard.py --server.port=8501 --server.headless=true
+    depends_on:
+      - bot
+    ports:
+      - "8501:8501"
+    env_file: .env
+    environment:
+      DB_HOST: postgres
+
+volumes:
+  pgdata:

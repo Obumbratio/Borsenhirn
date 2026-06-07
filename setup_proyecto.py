@@ -563,7 +563,7 @@ def setup_logging():
 def log_trade(action, symbol, price, qty, reason):
     os.makedirs(os.path.dirname(config.TRADES_LOG), exist_ok=True)
     exists = os.path.isfile(config.TRADES_LOG)
-    row = {"timestamp":datetime.utcnow().isoformat(),"action":action,
+    row = {"timestamp":datetime.now(timezone.utc).isoformat(),"action":action,
            "symbol":symbol,"price":price,"qty":qty,
            "value":round(price*qty,2),"reason":reason}
     with open(config.TRADES_LOG,"a",newline="",encoding="utf-8") as f:
