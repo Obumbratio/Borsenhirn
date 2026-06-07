@@ -53,6 +53,13 @@ append-only por permisos, las 4 categorías, soft-fail.
 - B5.4 ✅ endpoint `GET /me/audit` (el tenant ve su traza, RLS). e2e completo.
 **Backend de B5 COMPLETO.** Falta (aparte): migración `audit_log` a prod (con B8). Baseline 361 passed.
 
+**B6 (Worker isolation): framework COMPLETO.** Plan: [B6_WORKERS_PLAN.md](B6_WORKERS_PLAN.md).
+Decidido: secuencial con aislamiento de errores. `borsenhirn/workers/`:
+`load_broker_credentials` (vault + fallback), `TenantWorker` (contexto aislado),
+`WorkerOrchestrator` (recorre activos, saltea HALT, try/except por tenant),
+`run_all_tenants`/`make_halted_check`. 8 tests (7 unit + 1 e2e). Baseline 368.
+Falta (aparte): wire-up del ciclo real del bot (reusar `main`) — el `cycle_fn` es inyectable.
+
 ## Estado del Bloque 5 (refactor capa de app)
 | Sub-bloque | Qué | Estado | Commit |
 |---|---|---|---|
