@@ -11,6 +11,8 @@
 - [B3 — cierre (backend de auth)](B3_CLOSEOUT.md)
 - [B4 — plan de billing con Stripe](B4_BILLING_PLAN.md)
 - [B4 — cierre (backend de billing)](B4_CLOSEOUT.md)
+- [B5 — plan de audit log](B5_AUDIT_PLAN.md)
+- [B5 — cierre (audit log)](B5_CLOSEOUT.md)
 - Börsenhirn SaaS — bloques B1..B10
 - Specula Oeconomica
 - CSUEB / certificaciones
