@@ -81,6 +81,18 @@ runbook: [B9_BACKUP_RUNBOOK.md](B9_BACKUP_RUNBOOK.md). `scripts/db_backup.sh`
 `GET /me/export`, excluye user_credentials). Integración completa: 40 passed.
 Falta (aparte): agendar cron + destino offsite en prod.
 
+**B10 (Anomaly detection): COMPLETO.** Plan: [B10_ANOMALY_PLAN.md](B10_ANOMALY_PLAN.md).
+`borsenhirn/anomaly/`: `build_snapshot` (audit_log + trading bajo RLS), reglas puras
+(cred-access spike, killswitch burst, losing streak, volume spike), `AnomalyDetector.scan`
++ `scan_and_alert` (AlertManager; solo alerta — D1). Umbrales por env. 12 tests.
+Integración completa: 41 passed.
+
+## 🏁 ROADMAP SaaS COMPLETO (backends): B1..B10 ✅
+Los 10 bloqueadores construidos y testeados en dev. **Pendientes operativos:**
+ejecutar "B1 Bloque 8" (aplicar a prod en el host de prod) + las migraciones de
+clerk_id/billing/audit/legal; poner keys reales (Clerk/Stripe); cron de backups;
+frontend Next.js. Cierres por bloque en docs/B{n}_CLOSEOUT.md.
+
 ## Estado del Bloque 5 (refactor capa de app)
 | Sub-bloque | Qué | Estado | Commit |
 |---|---|---|---|
