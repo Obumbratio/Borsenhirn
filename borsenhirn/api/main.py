@@ -17,6 +17,10 @@ from borsenhirn.auth.deps import (
     get_current_tenant, get_active_tenant, get_tenant_manager,
 )
 from borsenhirn.billing import get_billing_provider, BillingError, apply_stripe_event
+from borsenhirn.legal import (
+    current_versions, record_acceptance, get_acceptances, is_compliant,
+    get_compliant_tenant,
+)
 # NOTA: core.cache (redis) y core.database (sqlalchemy) se importan LAZY dentro
 # de los endpoints que los usan (/status, /signal). Así la API — y en especial
 # los endpoints de auth /me — se importan y corren aunque esas libs no estén
@@ -67,9 +71,50 @@ def me(tenant_id: str = Depends(get_current_tenant)):
     return {"tenant_id": tenant_id}
 
 
+class LegalAccept(BaseModel):
+    document: str   # 'terms' | 'privacy'
+    version: str
+
+
+@app.get("/legal/current")
+def legal_current():
+    """Versiones vigentes de los documentos legales (público)."""
+    return {"versions": current_versions(),
+            "documents": {"terms": "legal/TERMS.md", "privacy": "legal/PRIVACY.md",
+                          "disclaimer": "legal/DISCLAIMER.md"}}
+
+
+@app.post("/me/legal/accept")
+def legal_accept(body: LegalAccept, tenant_id: str = Depends(get_current_tenant)):
+    """Registra la aceptación de un documento legal (versión vigente)."""
+    cur = current_versions()
+    if body.document not in cur:
+        raise HTTPException(status_code=400, detail="documento desconocido")
+    if body.version != cur[body.document]:
+        raise HTTPException(
+            status_code=409,
+            detail=f"versión no vigente (actual: {cur[body.document]})")
+    actor = "system"
+    try:
+        from borsenhirn.audit import get_actor
+        actor = get_actor()
+    except Exception:
+        pass
+    record_acceptance(tenant_id, body.document, body.version, actor=actor)
+    return {"ok": True, "compliant": is_compliant(tenant_id)}
+
+
+@app.get("/me/legal")
+def my_legal(tenant_id: str = Depends(get_current_tenant)):
+    """Qué aceptó el tenant + si está al día con las versiones vigentes."""
+    return {"current": current_versions(),
+            "accepted": get_acceptances(tenant_id),
+            "compliant": is_compliant(tenant_id)}
+
+
 @app.get("/me/trades/count")
-def my_trades_count(tenant_id: str = Depends(get_active_tenant)):
-    """Cuenta los trades del tenant — requiere suscripción activa (gating B4.5)."""
+def my_trades_count(tenant_id: str = Depends(get_compliant_tenant)):
+    """Cuenta los trades — requiere suscripción activa Y aceptación legal (B4.5/B7)."""
     with bdb.get_conn(role="app") as conn, bdb.set_tenant(conn, tenant_id):
         with conn.cursor() as cur:
             cur.execute("SELECT count(*) FROM bot_trade_outcomes")

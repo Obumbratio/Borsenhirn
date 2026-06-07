@@ -35,6 +35,9 @@ def admin_conn():
         yield conn
     finally:
         with conn.cursor() as cur:
+            # borrar child rows (audit_log del provision) antes del tenant (FK RESTRICT)
+            cur.execute("DELETE FROM audit_log WHERE tenant_id IN "
+                        "(SELECT tenant_id FROM tenants WHERE clerk_user_id=%s)", (CLERK_ID,))
             cur.execute("DELETE FROM tenants WHERE clerk_user_id = %s", (CLERK_ID,))
         conn.commit()
         conn.close()

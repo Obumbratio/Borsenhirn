@@ -172,6 +172,10 @@ except Exception:  # pragma: no cover - fallback ante import roto
 # Para rotación: temporalmente ambos están seteados.
 BORSENHIRN_NEW_MASTER_KEY = os.getenv("BORSENHIRN_NEW_MASTER_KEY", "")
 
+# ── Legal (B7): versiones vigentes de los docs (al cambiar un doc, bumpear) ──
+LEGAL_TERMS_VERSION   = os.getenv("LEGAL_TERMS_VERSION", "2026-04-24")
+LEGAL_PRIVACY_VERSION = os.getenv("LEGAL_PRIVACY_VERSION", "2026-04-24")
+
 # ── Fuentes de datos adicionales (todas opcionales) ───────
 FINNHUB_API_KEY      = os.getenv("FINNHUB_API_KEY", "")
 ALPHAVANTAGE_API_KEY = os.getenv("ALPHAVANTAGE_API_KEY", "")

@@ -36,6 +36,8 @@ def mgr_and_tenant():
         yield mgr, t
     finally:
         with conn.cursor() as cur:
+            cur.execute("DELETE FROM audit_log WHERE tenant_id IN "
+                        "(SELECT tenant_id FROM tenants WHERE clerk_user_id=%s)", (CLERK_ID,))
             cur.execute("DELETE FROM tenants WHERE clerk_user_id = %s", (CLERK_ID,))
         conn.commit()
         conn.close()

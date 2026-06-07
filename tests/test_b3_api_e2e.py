@@ -65,9 +65,11 @@ def client():
         yield TestClient(mini)
     finally:
         mini.dependency_overrides.clear()
-        # cleanup: borrar el tenant provisionado por el test
+        # cleanup: borrar child rows (audit_log del provision) + el tenant
         with bdb.get_conn(role="admin") as conn:
             with conn.cursor() as cur:
+                cur.execute("DELETE FROM audit_log WHERE tenant_id IN "
+                            "(SELECT tenant_id FROM tenants WHERE clerk_user_id=%s)", (CLERK_SUB,))
                 cur.execute("DELETE FROM tenants WHERE clerk_user_id = %s", (CLERK_SUB,))
             conn.commit()
         bdb.close_all_pools()

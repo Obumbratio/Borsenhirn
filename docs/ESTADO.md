@@ -60,6 +60,13 @@ Decidido: secuencial con aislamiento de errores. `borsenhirn/workers/`:
 `run_all_tenants`/`make_halted_check`. 8 tests (7 unit + 1 e2e). Baseline 368.
 Falta (aparte): wire-up del ciclo real del bot (reusar `main`) — el `cycle_fn` es inyectable.
 
+**B7 (Legal): backend COMPLETO.** Plan: [B7_LEGAL_PLAN.md](B7_LEGAL_PLAN.md). Decidido:
+gatear + Terms+Privacy. Tabla `legal_acceptance` (RLS + append-only), `borsenhirn/legal/`
+(`record_acceptance`/`is_compliant`/`current_versions`), endpoints `/legal/current`,
+`POST /me/legal/accept`, `GET /me/legal`, y gating `get_compliant_tenant` (451) en
+`/me/trades/count`. Versiones en config. Suite integración completa: **35 passed**.
+(De paso: fix de cleanups e2e por FK del hook de audit de B5.) Falta: migración a prod (B8).
+
 ## Estado del Bloque 5 (refactor capa de app)
 | Sub-bloque | Qué | Estado | Commit |
 |---|---|---|---|
