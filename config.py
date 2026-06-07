@@ -176,6 +176,9 @@ BORSENHIRN_NEW_MASTER_KEY = os.getenv("BORSENHIRN_NEW_MASTER_KEY", "")
 LEGAL_TERMS_VERSION   = os.getenv("LEGAL_TERMS_VERSION", "2026-04-24")
 LEGAL_PRIVACY_VERSION = os.getenv("LEGAL_PRIVACY_VERSION", "2026-04-24")
 
+# ── Admin (B8): API key para endpoints admin (kill-switch global). Vacío = deshabilitado. ──
+ADMIN_API_KEY = os.getenv("ADMIN_API_KEY", "")
+
 # ── Fuentes de datos adicionales (todas opcionales) ───────
 FINNHUB_API_KEY      = os.getenv("FINNHUB_API_KEY", "")
 ALPHAVANTAGE_API_KEY = os.getenv("ALPHAVANTAGE_API_KEY", "")

@@ -95,18 +95,39 @@ class WorkerOrchestrator:
         *,
         cred_loader: Callable[[str], Optional[Tuple[str, str]]] = load_broker_credentials,
         halted_check: Optional[Callable[[str], bool]] = None,
+        global_halt_check: Optional[Callable[[], bool]] = None,
     ):
         self.tm = tenant_manager
         self.cred_loader = cred_loader
         self.halted_check = halted_check
+        self.global_halt_check = global_halt_check
+
+    def _is_global_halt(self) -> bool:
+        check = self.global_halt_check
+        if check is None:
+            try:
+                from borsenhirn.safety.global_killswitch import is_global_halt
+                check = is_global_halt
+            except Exception:   # pragma: no cover
+                return False
+        try:
+            return bool(check())
+        except Exception as exc:   # fail-open: un error de chequeo no frena todo
+            logger.warning("global_halt_check falló (se continúa): %s", exc)
+            return False
 
     def run_once(self, cycle_fn: Callable[[str, Optional[Tuple[str, str]]], Any]) -> list:
         """
         Un pase sobre todos los tenants ACTIVE. Devuelve una lista de resúmenes
         por tenant: {tenant_id, status: ok|skipped_halt|error, ...}.
         Un error en un tenant NO frena a los demás.
+
+        Si el kill-switch GLOBAL (B8) está activo, no corre ningún tenant.
         """
         from borsenhirn.tenancy.tenant import TenantStatus
+        if self._is_global_halt():
+            logger.warning("GLOBAL kill-switch activo: no se corre ningún tenant.")
+            return [{"status": "global_halt"}]
         results = []
         for tenant in self.tm.list_tenants(status=TenantStatus.ACTIVE):
             tid = tenant.tenant_id

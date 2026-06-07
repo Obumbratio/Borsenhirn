@@ -65,7 +65,14 @@ gatear + Terms+Privacy. Tabla `legal_acceptance` (RLS + append-only), `borsenhir
 (`record_acceptance`/`is_compliant`/`current_versions`), endpoints `/legal/current`,
 `POST /me/legal/accept`, `GET /me/legal`, y gating `get_compliant_tenant` (451) en
 `/me/trades/count`. Versiones en config. Suite integración completa: **35 passed**.
-(De paso: fix de cleanups e2e por FK del hook de audit de B5.) Falta: migración a prod (B8).
+(De paso: fix de cleanups e2e por FK del hook de audit de B5.) Falta: migración a prod ("B1 Bloque 8").
+
+**B8 (Kill switch): COMPLETO.** Per-tenant ya estaba (manual halt/clear + checks
+automáticos; B6 lo respeta). Nuevo: kill-switch GLOBAL (`borsenhirn/safety/global_killswitch.py`
+sobre el tenant SYSTEM), el orquestador saltea todo si está activo, endpoints admin
+`/admin/killswitch/global` (GET/POST/clear, auth por `X-Admin-Key`=`ADMIN_API_KEY`).
+Audita global_halt/clear. Suite integración: 37 passed. CLAUDE.md sincronizado.
+Ojo numeración: "B1 Bloque 8" (aplicar a prod) ≠ "Roadmap B8 Kill switch".
 
 ## Estado del Bloque 5 (refactor capa de app)
 | Sub-bloque | Qué | Estado | Commit |

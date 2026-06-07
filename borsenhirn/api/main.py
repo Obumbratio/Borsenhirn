@@ -9,7 +9,7 @@ Endpoints autenticados (B3, Clerk JWT -> tenant): /me, /me/trades/count.
 """
 import logging
 from datetime import datetime, timezone
-from fastapi import FastAPI, Depends, Request, HTTPException
+from fastapi import FastAPI, Depends, Request, HTTPException, Header
 from pydantic import BaseModel
 import borsenhirn.db as bdb
 import os
@@ -190,6 +190,39 @@ async def stripe_webhook(
     except BillingError:
         raise HTTPException(status_code=400, detail="webhook inválido")
     return apply_stripe_event(event, tm)
+
+
+def _require_admin(x_admin_key: str | None) -> None:
+    """Auth admin por API key (B8). 403 si falta/no coincide o si está deshabilitado."""
+    import config
+    if not config.ADMIN_API_KEY:
+        raise HTTPException(status_code=403, detail="admin API deshabilitada (sin ADMIN_API_KEY)")
+    if not x_admin_key or x_admin_key != config.ADMIN_API_KEY:
+        raise HTTPException(status_code=403, detail="X-Admin-Key inválida")
+
+
+@app.get("/admin/killswitch/global")
+def admin_global_status(x_admin_key: str = Header(default=None)):
+    _require_admin(x_admin_key)
+    from borsenhirn.safety.global_killswitch import is_global_halt
+    return {"global_halt": is_global_halt()}
+
+
+@app.post("/admin/killswitch/global")
+def admin_global_halt(reason: str = "", x_admin_key: str = Header(default=None)):
+    """Activa el kill-switch GLOBAL (para a TODOS los tenants)."""
+    _require_admin(x_admin_key)
+    from borsenhirn.safety.global_killswitch import trip_global, is_global_halt
+    trip_global(reason or "manual admin halt", actor="admin")
+    return {"global_halt": is_global_halt()}
+
+
+@app.post("/admin/killswitch/global/clear")
+def admin_global_clear(note: str = "", x_admin_key: str = Header(default=None)):
+    _require_admin(x_admin_key)
+    from borsenhirn.safety.global_killswitch import clear_global, is_global_halt
+    clear_global(note, actor="admin")
+    return {"global_halt": is_global_halt()}
 
 
 @app.get("/health")

@@ -17,6 +17,8 @@ class AuditAction:
     # Kill-switch
     KS_HALT = "killswitch.halt"
     KS_CLEAR = "killswitch.clear"
+    KS_GLOBAL_HALT = "killswitch.global_halt"
+    KS_GLOBAL_CLEAR = "killswitch.global_clear"
 
 
 __all__ = ["AuditAction"]

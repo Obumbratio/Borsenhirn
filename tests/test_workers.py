@@ -106,3 +106,13 @@ def test_orchestrator_passes_credentials():
 def test_orchestrator_empty_when_no_active():
     orch = WorkerOrchestrator(_FakeTM([]), cred_loader=lambda tid: None)
     assert orch.run_once(lambda tid, creds: None) == []
+
+
+def test_orchestrator_global_halt_skips_all():
+    tm = _FakeTM(["t1", "t2"])
+    ran = []
+    orch = WorkerOrchestrator(
+        tm, cred_loader=lambda tid: None, global_halt_check=lambda: True)
+    res = orch.run_once(lambda tid, creds: ran.append(tid))
+    assert res == [{"status": "global_halt"}]
+    assert ran == []   # ningún tenant corrió
