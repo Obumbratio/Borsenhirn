@@ -3,19 +3,33 @@
 > Misión y decisiones de fondo: ver [PLAN.md](PLAN.md). Log por bloque: [B1_SESSION_LOG.md](B1_SESSION_LOG.md).
 
 ## Última actualización
-2026-06-06
+2026-06-07
 
-## Dónde voy
-**B1 DEV-COMPLETE** (pendiente: ejecutar Bloque 8 en prod — 6 scripts listos, ver
-[B1_BLOCK8_PLAN.md](B1_BLOCK8_PLAN.md) / [B1_CLOSEOUT.md](B1_CLOSEOUT.md)).
-**Ahora: B2 Vault — en progreso.** Foco: sacar la master key de `.env`.
-Hecho: (1) capa de secret providers (`secret_provider.py` — file/command/env,
-`Vault.from_provider()`, `config` resuelve vía la cadena; 19 tests). (2) rotación
-operacionalizada (`rotate_master_key.py`: keys vía provider, guard anti no-op que
-exige rol admin con visibilidad cross-tenant, aviso 0-filas; 7 tests). Doc en
-`SECRETS.md`. Baseline 293 passed. Branch `feature/multi-tenancy-phase-b`.
-Pendiente B2 (opcional / depende de B3): envelope encryption per-tenant, modelo
-user_id↔tenant_id, audit de acceso (probable B5).
+## 🏁 Dónde voy — ROADMAP SaaS B1..B10 COMPLETO y MERGEADO A MAIN
+Los 10 bloqueadores (backends) construidos y testeados en `borsenhirn_dev`, en
+**PR #1 mergeado a `main`** (`e483556`). Tests: 387 baseline + 41 integración
+(gated `RUN_DB_INTEGRATION`), todo verde. Producción `borsenhirn` **intacta**.
+Cierres por bloque en `docs/B{n}_CLOSEOUT.md`.
+
+### ✅ Pendientes OPERACIONALES (no es código nuevo; checklist próxima sesión)
+- [ ] **Ejecutar "B1 Bloque 8"** en el host de prod — el SaaS NO está vivo hasta esto.
+      (prod `borsenhirn` vive en otra máquina, no en localhost). Scripts:
+      `scripts/b1_block8_*`. Plan: [B1_BLOCK8_PLAN.md](B1_BLOCK8_PLAN.md).
+- [ ] **Migrar a prod** las tablas/columnas de B3..B9: `clerk_user_id`,
+      billing en `tenants`, `audit_log`, `legal_acceptance` (con B8). Scripts:
+      `scripts/b3_block1_*`, `b4_block1_*`, `b5_block1_*`, `b7_block1_*`.
+- [ ] **Keys reales en `.env` de prod:** Clerk (`AUTH_VERIFIER=clerk`,
+      `CLERK_ISSUER`, `CLERK_JWKS_URL`), Stripe (`BILLING_PROVIDER=stripe`,
+      `STRIPE_*`), `ADMIN_API_KEY`, master key vía secret manager.
+- [ ] **Cron de backups** (`scripts/db_backup.sh`) + destino offsite — [B9_BACKUP_RUNBOOK.md](B9_BACKUP_RUNBOOK.md).
+- [ ] **Frontend Next.js** (Clerk + checkout/portal + modal legal) — esfuerzo aparte.
+- [ ] **Wire-up del ciclo real del bot** en el worker (`cycle_fn`) + `scan_and_alert` por tenant.
+
+### Estado por bloque (todos ✅ backend)
+B1 RLS · B2 Vault · B3 Auth Clerk · B4 Stripe · B5 Audit · B6 Workers ·
+B7 Legal · B8 Kill-switch (per-tenant+global) · B9 Backups+export · B10 Anomaly.
+
+> El detalle histórico por sub-bloque está más abajo (log del sprint).
 
 **B3 (Auth Clerk): en progreso.** Decidido: 1 user Clerk = 1 tenant, pyjwt, provisión
 lazy, user_id=tenant_id, solo endpoints nuevos protegidos. Plan: [B3_AUTH_PLAN.md](B3_AUTH_PLAN.md).
