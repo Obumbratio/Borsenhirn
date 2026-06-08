@@ -87,6 +87,26 @@ logger = logging.getLogger(__name__)
 
 
 # =====================================================================
+# Adaptadores numpy -> psycopg2
+# =====================================================================
+# numpy 2.0 cambió el repr de los escalares (`repr(np.float64(0.75))` pasó a
+# ser "np.float64(0.75)"); psycopg2 los renderiza con ese repr y produce SQL
+# inválido ("schema np does not exist"). Registramos adaptadores que castean a
+# tipos Python nativos, así CUALQUIER INSERT con valores numpy funciona.
+try:
+    import numpy as _np
+    from psycopg2.extensions import register_adapter as _reg, AsIs as _AsIs
+
+    _reg(_np.float64, lambda v: _AsIs(repr(float(v))))
+    _reg(_np.float32, lambda v: _AsIs(repr(float(v))))
+    _reg(_np.int64,   lambda v: _AsIs(int(v)))
+    _reg(_np.int32,   lambda v: _AsIs(int(v)))
+    _reg(_np.bool_,   lambda v: _AsIs("true" if v else "false"))
+except Exception:   # numpy ausente o API distinta: no es fatal
+    pass
+
+
+# =====================================================================
 # Pools (lazy singletons)
 # =====================================================================
 
