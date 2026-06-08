@@ -1,0 +1,27 @@
+[Unit]
+Description=Börsenhirn trading bot (PAPER, single-user, always-on)
+Documentation=file:///home/casta/proyecto_trading/docs/DEPLOY_ALWAYS_ON.md
+# Arranca después de la red; postgres es soft-dep (Restart=always reintenta si aún no está).
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=casta
+Group=casta
+WorkingDirectory=/home/casta/proyecto_trading
+# config.py hace load_dotenv() al importar -> toma .env de WorkingDirectory.
+Environment=PYTHONUNBUFFERED=1
+# -u = sin buffer, para que el log salga en vivo. PAPER por defecto (sin --live).
+ExecStart=/home/casta/proyecto_trading/venv/bin/python -u main.py
+# Log a archivo fijo (fácil de tail) + queda también en journald.
+StandardOutput=append:/home/casta/proyecto_trading/logs/bot_service.log
+StandardError=append:/home/casta/proyecto_trading/logs/bot_service.log
+# Si crashea, lo levanta de nuevo (no en bucle infinito instantáneo).
+Restart=always
+RestartSec=15
+# Endurecimiento básico (no root, sin escalar privilegios).
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
