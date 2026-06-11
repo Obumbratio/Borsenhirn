@@ -16,10 +16,23 @@ la máquina nunca se conectó a ningún server. El "VPS de Hetzner" fue un **mal
 `b1_block8_*` (core + extras) están listos y validados, pero **no se corren hasta que
 exista prod.**
 
-→ **El siguiente paso real es una DECISIÓN de fondo, a tomar en frío (no ahora):**
-¿la versión SaaS multi-tenant vive en un VPS de un tercero? Eso **rompe el principio
-local-first** del proyecto, y Uriel quiere decidirlo conscientemente antes de alquilar
-nada. Hasta esa decisión, no se despliega ni se migra nada.
+→ **DECISIÓN TOMADA (2026-06-11): prod LOCAL-FIRST** (en la máquina de Uriel, no nube).
+No rompe local-first, costo $0. Siguiente paso: parar prod local + poblar esquema +
+correr el bot. **OJO — hallazgos al planear el stand-up local (ver §abajo):**
+  1. **No hay script único de creación de esquema.** El esquema está repartido en
+     `db/schema.sql` + `borsenhirn/{tenancy,safety,security}/migrations.sql` + `CREATE
+     TABLE` en código. NO existe un "init prod de cero" de un comando.
+  2. **`borsenhirn_dev` YA tiene el esquema final multi-tenant** (21 tablas, RLS aplicado).
+     → Camino simple: clonar el esquema de dev (`pg_dump --schema-only`) a un `borsenhirn`
+     nuevo. Eso hace que **B1 Bloque 8 sea casi un no-op**: sus scripts transformaban un
+     prod single-user VIEJO (el dump de abril) que NO existe; para un prod nuevo se clona
+     el esquema ya multi-tenant, no se transforma.
+  3. **Conflicto de puerto:** el Postgres local ya escucha en `127.0.0.1:5432`. El
+     `docker-compose.yml` mapea `5432:5432` → chocaría. Habría que remapear (`5433:5432`)
+     o usar otra DB en el mismo cluster (sin docker).
+Plan/decisión: [DESPLIEGUE_PROD_PLAN.md](DESPLIEGUE_PROD_PLAN.md). Sub-decisión pendiente:
+docker (aislado, remapear puerto + poblar esquema) vs DB `borsenhirn` en el cluster local
+(más simple, clonar esquema de dev). NADA corrido aún — esperando confirmar el sub-camino.
 
 **Insumo para esa decisión** (verificado 2026-06-11): el repo YA tiene un camino de
 despliegue **local-first** scaffoldeado — `Dockerfile` + `docker-compose.yml` (Postgres
