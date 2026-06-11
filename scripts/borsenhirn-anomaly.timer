@@ -1,0 +1,15 @@
+[Unit]
+Description=Börsenhirn — dispara el pase de anomalías cada hora
+Documentation=file:///home/casta/proyecto_trading/docs/DEPLOY_ALWAYS_ON.md
+
+[Timer]
+# Al tope de cada hora. Persistent: si la máquina estuvo apagada, corre el
+# pase perdido al volver. RandomizedDelaySec: jitter para no caer en el segundo
+# exacto del cambio de hora.
+OnCalendar=hourly
+Persistent=true
+RandomizedDelaySec=60
+Unit=borsenhirn-anomaly.service
+
+[Install]
+WantedBy=timers.target

@@ -48,8 +48,10 @@ Cierres por bloque en `docs/B{n}_CLOSEOUT.md`.
 - [x] **`scan_and_alert` por tenant** — hecho 2026-06-11: pase de anomalías
       `borsenhirn/workers/anomaly_scan.py::scan_anomalies_all_tenants` (itera ACTIVE
       excl. SYSTEM, alert_mgr scoped por tenant, no saltea HALT, aísla errores).
-      Cadencia: agendar por cron/loop. AlertManager factorizado a
-      `bootstrap.build_alert_manager_from_config`. Suite: 404 passed.
+      AlertManager factorizado a `bootstrap.build_alert_manager_from_config`. Suite: 404 passed.
+- [x] **Agendado cada hora** (2026-06-11): systemd timer `scripts/borsenhirn-anomaly.timer`
+      + service oneshot + entrypoint `scripts/run_anomaly_scan.py`. Instalación en
+      [DEPLOY_ALWAYS_ON.md](DEPLOY_ALWAYS_ON.md) (la corre Uriel: `cp` units → `enable --now` el timer).
 
 ### Estado por bloque (todos ✅ backend)
 B1 RLS · B2 Vault · B3 Auth Clerk · B4 Stripe · B5 Audit · B6 Workers ·

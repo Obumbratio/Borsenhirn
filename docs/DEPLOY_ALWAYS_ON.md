@@ -119,6 +119,50 @@ Lo robusto de verdad: una maquinita en la nube siempre prendida. ~$5/mes
 
 ---
 
+## Pase de anomalías por tenant (timer horario)
+
+Independiente del bot: un **systemd timer** corre el detector de anomalías (B10)
+sobre todos los tenants ACTIVE **cada hora** (`scripts/run_anomaly_scan.py` vía
+`scan_anomalies_all_tenants`). Solo alerta (no bloquea) y rutea a la `alert_mgr`
+de cada tenant. Funciona igual en C1 (WSL) y C2 (VPS). Units en el repo:
+`scripts/borsenhirn-anomaly.service` (oneshot) + `scripts/borsenhirn-anomaly.timer`.
+
+### Instalar (una sola vez) — en la terminal del host:
+
+```bash
+cd /home/casta/proyecto_trading
+
+# 1) Copiar service + timer a systemd
+sudo cp scripts/borsenhirn-anomaly.service /etc/systemd/system/
+sudo cp scripts/borsenhirn-anomaly.timer   /etc/systemd/system/
+
+# 2) Recargar y habilitar el TIMER (no el service: el timer lo dispara)
+sudo systemctl daemon-reload
+sudo systemctl enable --now borsenhirn-anomaly.timer
+
+# 3) Verificar que quedó agendado
+systemctl status borsenhirn-anomaly.timer --no-pager
+systemctl list-timers borsenhirn-anomaly.timer --no-pager   # próxima corrida
+```
+
+### Manejo / verificación
+
+```bash
+# Forzar un pase ahora (sin esperar la hora)
+sudo systemctl start borsenhirn-anomaly.service
+# Ver el resultado del último pase
+tail -n 20 /home/casta/proyecto_trading/logs/anomaly_scan.log
+journalctl -u borsenhirn-anomaly.service -n 50 --no-pager
+# Deshabilitar el agendado
+sudo systemctl disable --now borsenhirn-anomaly.timer
+```
+
+> Probado a mano: `venv/bin/python -m scripts.run_anomaly_scan` → un pase y sale 0.
+> Cadencia horaria + dedupe del AlertManager evitan re-alertar lo mismo sin parar.
+> En el VPS (C2) ajustá `User=`/`WorkingDirectory=` en el `.service` igual que el bot.
+
+---
+
 ## Pasar a plata real (NO ahora)
 Cuando algún día quieras live: cuenta Alpaca live + `LIVE_ALPACA_*` en `.env` y
 cambiar el `ExecStart` del unit a `... main.py --live`. Con mucho cuidado y

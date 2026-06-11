@@ -1,0 +1,18 @@
+[Unit]
+Description=Börsenhirn — pase de detección de anomalías por tenant (B10)
+Documentation=file:///home/casta/proyecto_trading/docs/DEPLOY_ALWAYS_ON.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+# oneshot: hace un pase y sale; lo dispara el .timer (cada hora).
+Type=oneshot
+User=casta
+Group=casta
+WorkingDirectory=/home/casta/proyecto_trading
+# config.py hace load_dotenv() al importar -> toma .env de WorkingDirectory.
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/casta/proyecto_trading/venv/bin/python -u -m scripts.run_anomaly_scan
+StandardOutput=append:/home/casta/proyecto_trading/logs/anomaly_scan.log
+StandardError=append:/home/casta/proyecto_trading/logs/anomaly_scan.log
+NoNewPrivileges=true
