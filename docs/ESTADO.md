@@ -3,7 +3,20 @@
 > Misión y decisiones de fondo: ver [PLAN.md](PLAN.md). Log por bloque: [B1_SESSION_LOG.md](B1_SESSION_LOG.md).
 
 ## Última actualización
-2026-06-07
+2026-06-11
+
+## 🔌 Wire-up del ciclo real del bot al worker multi-tenant (2026-06-11)
+Hecho: la lógica del motor se extrajo de `main.run()` (656 líneas) a
+`borsenhirn/engine.py::BotEngine` (setup en `__init__` + un ciclo en `run_cycle()`,
+sin dormir). `main.py` quedó fino (61 líneas, misma firma `run(train,once,live)`
+— no rompe `bot_api`). Nuevo `borsenhirn/workers/bot_cycle.py::make_bot_cycle_fn()`
+cachea un `BotEngine` por tenant y lo inyecta a `run_all_tenants`/`WorkerOrchestrator`.
+Tests: 392 passed (387 baseline + 5 wiring deterministas en `tests/test_bot_cycle.py`).
+**Limitaciones conocidas (TODO):** `send_alert`/`log_trade`/`register_external_alerter`
+son globales (un solo webhook Discord; solo el DEFAULT tenant registra el alerter);
+el plan de usuario (`my_plan`) usa archivo global, no scopeado por tenant.
+**Pendiente:** smoke real 2-tenants paper (coloca órdenes paper) — comando:
+`python -c "from borsenhirn.workers.runner import run_all_tenants; from borsenhirn.workers.bot_cycle import make_bot_cycle_fn; print(run_all_tenants(make_bot_cycle_fn()))"`
 
 ## 🏁 Dónde voy — ROADMAP SaaS B1..B10 COMPLETO y MERGEADO A MAIN
 Los 10 bloqueadores (backends) construidos y testeados en `borsenhirn_dev`, en
@@ -23,7 +36,8 @@ Cierres por bloque en `docs/B{n}_CLOSEOUT.md`.
       `STRIPE_*`), `ADMIN_API_KEY`, master key vía secret manager.
 - [ ] **Cron de backups** (`scripts/db_backup.sh`) + destino offsite — [B9_BACKUP_RUNBOOK.md](B9_BACKUP_RUNBOOK.md).
 - [ ] **Frontend Next.js** (Clerk + checkout/portal + modal legal) — esfuerzo aparte.
-- [ ] **Wire-up del ciclo real del bot** en el worker (`cycle_fn`) + `scan_and_alert` por tenant.
+- [x] **Wire-up del ciclo real del bot** en el worker (`cycle_fn`) — hecho 2026-06-11
+      (`BotEngine` + `make_bot_cycle_fn`). Falta: smoke real 2-tenants paper + `scan_and_alert` por tenant.
 
 ### Estado por bloque (todos ✅ backend)
 B1 RLS · B2 Vault · B3 Auth Clerk · B4 Stripe · B5 Audit · B6 Workers ·
