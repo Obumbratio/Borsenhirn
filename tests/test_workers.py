@@ -108,6 +108,17 @@ def test_orchestrator_empty_when_no_active():
     assert orch.run_once(lambda tid, creds: None) == []
 
 
+def test_orchestrator_skips_system_tenant():
+    from borsenhirn.tenancy.constants import SYSTEM_TENANT_ID
+    tm = _FakeTM([SYSTEM_TENANT_ID, "t1"])
+    ran = []
+    orch = WorkerOrchestrator(tm, cred_loader=lambda tid: None)
+    res = orch.run_once(lambda tid, creds: ran.append(tid) or "ok")
+    # SYSTEM (control-plane) no corre; t1 sí
+    assert ran == ["t1"]
+    assert [r["tenant_id"] for r in res] == ["t1"]
+
+
 def test_orchestrator_global_halt_skips_all():
     tm = _FakeTM(["t1", "t2"])
     ran = []

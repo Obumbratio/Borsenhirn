@@ -125,12 +125,17 @@ class WorkerOrchestrator:
         Si el kill-switch GLOBAL (B8) está activo, no corre ningún tenant.
         """
         from borsenhirn.tenancy.tenant import TenantStatus
+        from borsenhirn.tenancy.constants import SYSTEM_TENANT_ID
         if self._is_global_halt():
             logger.warning("GLOBAL kill-switch activo: no se corre ningún tenant.")
             return [{"status": "global_halt"}]
         results = []
         for tenant in self.tm.list_tenants(status=TenantStatus.ACTIVE):
             tid = tenant.tenant_id
+            # El tenant SYSTEM es del control-plane (kill-switch global, etc.),
+            # NO tradea: nunca se corre como worker (aunque figure ACTIVE).
+            if tid == SYSTEM_TENANT_ID:
+                continue
             if self.halted_check is not None:
                 try:
                     if self.halted_check(tid):
