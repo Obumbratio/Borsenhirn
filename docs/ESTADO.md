@@ -5,40 +5,30 @@
 ## Última actualización
 2026-06-11
 
-## ⛔ NO HAY PROD DESPLEGADO — leer antes de pensar en B1 Bloque 8 (2026-06-11)
-**No existe ninguna base de datos `borsenhirn` de producción viva, ni VPS, ni host
-remoto.** Verificado en WSL: no hay `~/.ssh/config`, `known_hosts` solo tiene GitHub,
-la máquina nunca se conectó a ningún server. El "VPS de Hetzner" fue un **malentendido**:
-"Hetzner" aparece solo como *ejemplo de proveedores* en [DEPLOY_ALWAYS_ON.md](DEPLOY_ALWAYS_ON.md)
-(todo ese doc está en condicional — es cómo se *desplegaría*, no algo hecho).
+## ✅ PROD LOCAL-FIRST DESPLEGADA (2026-06-11) — DB `borsenhirn` viva y limpia
+**Decisión:** local-first (en la máquina de Uriel, no nube — no rompe el principio, $0).
+**Hecho (camino A, "DB nueva en el cluster local"):**
+- DB `borsenhirn` creada en el Postgres local; **esquema clonado de `borsenhirn_dev`**
+  (`pg_dump --schema-only`) → 21 tablas, 19 con RLS, idéntico a dev. Trae ya todo el
+  multi-tenant final (RLS + clerk_id + billing + audit_log + legal_acceptance), así que
+  **B1 Bloque 8 NO se necesitó** (sus scripts transformaban un prod single-user viejo
+  inexistente; un prod nuevo se clona, no se transforma).
+- Sembradas las 2 filas de sistema (`tenants`: SYSTEM …000 + default …001). **Sin datos
+  de dev** (0 trades).
+- Rol `borsenhirn_app` (ya existía en el cluster) con grants + CONNECT en `borsenhirn`.
+  Smoke como rol app: NOSUPERUSER+NOBYPASSRLS, sin contexto→0 filas, RLS real ✓.
+- `.env.prod` (gitignored, DB_NAME=borsenhirn) + `scripts/run_bot_prod.sh` (sourcea
+  .env.prod; `config.load_dotenv()` no pisa env exportadas → prod gana sobre dev).
+  Smoke del stack app contra prod: BotMemory OK (0 trades), Alpaca paper OK.
 
-→ **B1 Bloque 8 NO es el siguiente paso**: no hay DB a la que apuntar. Los scripts
-`b1_block8_*` (core + extras) están listos y validados, pero **no se corren hasta que
-exista prod.**
+**Cómo correr el bot contra prod:** `bash scripts/run_bot_prod.sh`. Sin eso, el default
+sigue siendo dev (`.env`). Plan/decisión: [DESPLIEGUE_PROD_PLAN.md](DESPLIEGUE_PROD_PLAN.md).
 
-→ **DECISIÓN TOMADA (2026-06-11): prod LOCAL-FIRST** (en la máquina de Uriel, no nube).
-No rompe local-first, costo $0. Siguiente paso: parar prod local + poblar esquema +
-correr el bot. **OJO — hallazgos al planear el stand-up local (ver §abajo):**
-  1. **No hay script único de creación de esquema.** El esquema está repartido en
-     `db/schema.sql` + `borsenhirn/{tenancy,safety,security}/migrations.sql` + `CREATE
-     TABLE` en código. NO existe un "init prod de cero" de un comando.
-  2. **`borsenhirn_dev` YA tiene el esquema final multi-tenant** (21 tablas, RLS aplicado).
-     → Camino simple: clonar el esquema de dev (`pg_dump --schema-only`) a un `borsenhirn`
-     nuevo. Eso hace que **B1 Bloque 8 sea casi un no-op**: sus scripts transformaban un
-     prod single-user VIEJO (el dump de abril) que NO existe; para un prod nuevo se clona
-     el esquema ya multi-tenant, no se transforma.
-  3. **Conflicto de puerto:** el Postgres local ya escucha en `127.0.0.1:5432`. El
-     `docker-compose.yml` mapea `5432:5432` → chocaría. Habría que remapear (`5433:5432`)
-     o usar otra DB en el mismo cluster (sin docker).
-Plan/decisión: [DESPLIEGUE_PROD_PLAN.md](DESPLIEGUE_PROD_PLAN.md). Sub-decisión pendiente:
-docker (aislado, remapear puerto + poblar esquema) vs DB `borsenhirn` en el cluster local
-(más simple, clonar esquema de dev). NADA corrido aún — esperando confirmar el sub-camino.
-
-**Insumo para esa decisión** (verificado 2026-06-11): el repo YA tiene un camino de
-despliegue **local-first** scaffoldeado — `Dockerfile` + `docker-compose.yml` (Postgres
-`borsenhirn` + bot + dashboard en `docker compose up`, en tu propia máquina, sin nube).
-Nunca se construyó ni corrió (`docker images`/`ps` vacíos). O sea: "SaaS en VPS de
-tercero" NO es la única opción — hay una opción local que no rompe local-first.
+**Nota local-first:** prod y dev comparten cluster Postgres y el rol `borsenhirn_app`
+(misma password) — la separación es a nivel DB + RLS, no de credenciales. OK para
+local-first single-machine; si algún día prod sale a la nube, ahí sí rol/credenciales aparte.
+**Pendiente menor:** el timer de anomalías y los systemd units apuntan a dev (`.env`);
+para que monitoreen prod hay que sourcear `.env.prod` (ver run_bot_prod.sh como patrón).
 Plan completo (por qué migrar + opciones L/C + secuencia): [DESPLIEGUE_PROD_PLAN.md](DESPLIEGUE_PROD_PLAN.md).
 (Nota menor: ese `docker-compose.yml` tiene la password `uriel` hardcodeada y commiteada
 — local/bajo riesgo, pero no reusarla si algún día prod sale de tu máquina.)

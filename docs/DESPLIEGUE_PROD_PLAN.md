@@ -1,8 +1,10 @@
 # Despliegue de prod por primera vez — plan + decisión
 
-> ⚠️ **Esto es INSUMO PARA DECIDIR, no una orden de ejecutar.** No hay prod
-> desplegado (ver aviso ⛔ en [ESTADO.md](ESTADO.md)). Nada de acá se corre hasta
-> que Uriel tome, en frío, la decisión de despliegue. Escrito 2026-06-11.
+> ✅ **RESUELTO (2026-06-11): se desplegó prod LOCAL-FIRST (Opción L, camino A).**
+> DB `borsenhirn` creada en el Postgres local, esquema clonado de dev, limpia, con
+> rol app + RLS verificados. Cómo correr: `bash scripts/run_bot_prod.sh`. Detalle
+> del estado final en [ESTADO.md](ESTADO.md) (sección ✅ PROD LOCAL-FIRST). Lo de
+> abajo queda como registro del por qué y de las opciones evaluadas.
 
 ---
 
