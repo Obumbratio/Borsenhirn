@@ -21,6 +21,15 @@ exista prod.**
 local-first** del proyecto, y Uriel quiere decidirlo conscientemente antes de alquilar
 nada. Hasta esa decisión, no se despliega ni se migra nada.
 
+**Insumo para esa decisión** (verificado 2026-06-11): el repo YA tiene un camino de
+despliegue **local-first** scaffoldeado — `Dockerfile` + `docker-compose.yml` (Postgres
+`borsenhirn` + bot + dashboard en `docker compose up`, en tu propia máquina, sin nube).
+Nunca se construyó ni corrió (`docker images`/`ps` vacíos). O sea: "SaaS en VPS de
+tercero" NO es la única opción — hay una opción local que no rompe local-first.
+Plan completo (por qué migrar + opciones L/C + secuencia): [DESPLIEGUE_PROD_PLAN.md](DESPLIEGUE_PROD_PLAN.md).
+(Nota menor: ese `docker-compose.yml` tiene la password `uriel` hardcodeada y commiteada
+— local/bajo riesgo, pero no reusarla si algún día prod sale de tu máquina.)
+
 ## 🔌 Wire-up del ciclo real del bot al worker multi-tenant (2026-06-11)
 Hecho: la lógica del motor se extrajo de `main.run()` (656 líneas) a
 `borsenhirn/engine.py::BotEngine` (setup en `__init__` + un ciclo en `run_cycle()`,
