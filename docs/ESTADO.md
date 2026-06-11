@@ -33,6 +33,27 @@ Plan completo (por qué migrar + opciones L/C + secuencia): [DESPLIEGUE_PROD_PLA
 (Nota menor: ese `docker-compose.yml` tiene la password `uriel` hardcodeada y commiteada
 — local/bajo riesgo, pero no reusarla si algún día prod sale de tu máquina.)
 
+## 🖥️ Frontend Next.js — ARRANCADO (2026-06-11), bloqueado por prereqs del usuario
+Decisión de alcance: construir en rebanadas verticales. **Rebanada 1 (elegida):
+scaffold Next.js 14 (App Router) + TS + Tailwind + `@clerk/nextjs` + página protegida
+que llama a `/me`** (valida el cableado Clerk→JWT→backend, lo más riesgoso). Después:
+gate legal → billing → dashboard.
+
+**Contrato del backend** (`borsenhirn/api/main.py`, FastAPI :8000) — verificado vivo:
+`/health`, `/`, `/legal/current` responden OK. `/me`, `/me/legal*`, `/billing/*`,
+`/me/audit`, `/me/export` requieren JWT Bearer (Clerk).
+
+**Prerequisitos (del usuario, NO los hace Claude) — bloquean construir/verificar:**
+1. **Node.js no instalado** (ni nvm/apt). Next.js lo necesita. Instalar vía nvm (sin sudo):
+   `curl ... nvm install.sh | bash` → `nvm install --lts`.
+2. **App de Clerk (tier dev, gratis):** da publishable key (frontend) + issuer/JWKS (backend).
+3. **Configurar backend:** `AUTH_VERIFIER=clerk` + `CLERK_ISSUER` + `CLERK_JWKS_URL` en el env.
+   HALLAZGO: hoy `/me` sin token da **HTTP 500** (no 401) — NO es bug: `build_verifier_from_env`
+   tira `ValueError` porque no hay `AUTH_VERIFIER`/`AUTH_DEV_SECRET`. Con `AUTH_VERIFIER=clerk`
+   se resuelve (sin token → 401 limpio; con token → OK). Stripe puede esperar (test mode).
+
+Nada de frontend generado aún (no genero archivos que no puedo correr sin Node).
+
 ## 🔌 Wire-up del ciclo real del bot al worker multi-tenant (2026-06-11)
 Hecho: la lógica del motor se extrajo de `main.run()` (656 líneas) a
 `borsenhirn/engine.py::BotEngine` (setup en `__init__` + un ciclo en `run_cycle()`,
