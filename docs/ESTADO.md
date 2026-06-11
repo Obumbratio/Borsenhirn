@@ -11,12 +11,16 @@ Hecho: la lógica del motor se extrajo de `main.run()` (656 líneas) a
 sin dormir). `main.py` quedó fino (61 líneas, misma firma `run(train,once,live)`
 — no rompe `bot_api`). Nuevo `borsenhirn/workers/bot_cycle.py::make_bot_cycle_fn()`
 cachea un `BotEngine` por tenant y lo inyecta a `run_all_tenants`/`WorkerOrchestrator`.
-Tests: 392 passed (387 baseline + 5 wiring deterministas en `tests/test_bot_cycle.py`).
+Tests: 393 passed (387 baseline + 5 wiring + 1 fix). **Smoke real validado**
+(2026-06-11, mercado abierto): `run_all_tenants(make_bot_cycle_fn())` corrió un
+ciclo real del DEFAULT contra Alpaca paper (regime BULL, trades OK). Destapó y
+arregló un bug: el tenant SYSTEM (control-plane) figuraba ACTIVE y el orquestador
+lo corría como tenant de trading → RLS violation; ahora `run_once` lo saltea
+siempre (`67c494b`).
 **Limitaciones conocidas (TODO):** `send_alert`/`log_trade`/`register_external_alerter`
 son globales (un solo webhook Discord; solo el DEFAULT tenant registra el alerter);
 el plan de usuario (`my_plan`) usa archivo global, no scopeado por tenant.
-**Pendiente:** smoke real 2-tenants paper (coloca órdenes paper) — comando:
-`python -c "from borsenhirn.workers.runner import run_all_tenants; from borsenhirn.workers.bot_cycle import make_bot_cycle_fn; print(run_all_tenants(make_bot_cycle_fn()))"`
+Para tenants reales (no-default): falta `BORSENHIRN_MASTER_KEY` (vault) + creds por tenant.
 
 ## 🏁 Dónde voy — ROADMAP SaaS B1..B10 COMPLETO y MERGEADO A MAIN
 Los 10 bloqueadores (backends) construidos y testeados en `borsenhirn_dev`, en
