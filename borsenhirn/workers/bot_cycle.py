@@ -39,21 +39,19 @@ def make_bot_cycle_fn(
     reentrenar (el modelo se reentrena solo cada 7 días vía la memoria).
     """
     from borsenhirn.engine import BotEngine
-    from borsenhirn.tenancy.constants import DEFAULT_TENANT_UUID
 
     engines: dict = {}
 
     def cycle_fn(tenant_id: str, credentials: Optional[Tuple[str, str]] = None) -> dict:
         eng = engines.get(tenant_id)
         if eng is None:
-            # Solo el DEFAULT tenant engancha el alerter global (un único webhook
-            # de Discord); los demás tenants no lo registran para no duplicar.
+            # Cada engine rutea sus alertas a su propia alert_mgr (canales del
+            # tenant), así que no hay nada global que coordinar entre tenants.
             eng = BotEngine(
                 tenant_id,
                 credentials=credentials,
                 train=train,
                 live=live,
-                register_alerter=(tenant_id == DEFAULT_TENANT_UUID),
             )
             engines[tenant_id] = eng
         return eng.run_cycle()

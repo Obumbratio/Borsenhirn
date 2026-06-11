@@ -17,10 +17,13 @@ ciclo real del DEFAULT contra Alpaca paper (regime BULL, trades OK). Destapó y
 arregló un bug: el tenant SYSTEM (control-plane) figuraba ACTIVE y el orquestador
 lo corría como tenant de trading → RLS violation; ahora `run_once` lo saltea
 siempre (`67c494b`).
-**Limitaciones conocidas (TODO):** `send_alert`/`log_trade`/`register_external_alerter`
-son globales (un solo webhook Discord; solo el DEFAULT tenant registra el alerter);
-el plan de usuario (`my_plan`) usa archivo global, no scopeado por tenant.
-Para tenants reales (no-default): falta `BORSENHIRN_MASTER_KEY` (vault) + creds por tenant.
+**Aislamiento per-tenant (2026-06-11, opción C):** cada `BotEngine` rutea sus
+alertas a su propia `alert_mgr` (`_alert`, ya no al `send_alert` global), escribe
+el trade-log CSV a ruta por-tenant (`_log_trade`) y lee/guarda el plan por tenant
+(`my_plan.*(tenant_id=...)`). El DEFAULT conserva rutas/archivos globales (compat
+dashboard/bot_api). `_handle_plan` pasó a método de `BotEngine`. Suite: 400 passed.
+**Pendiente para tenants reales (no-default):** `BORSENHIRN_MASTER_KEY` (vault) +
+creds por tenant; canales de alerta (Discord/email) por tenant en su `alert_mgr`.
 
 ## 🏁 Dónde voy — ROADMAP SaaS B1..B10 COMPLETO y MERGEADO A MAIN
 Los 10 bloqueadores (backends) construidos y testeados en `borsenhirn_dev`, en

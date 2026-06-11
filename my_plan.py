@@ -57,21 +57,41 @@ def _claude(prompt: str, system: str) -> str:
 # ══════════════════════════════════════════════════════════════
 # GUARDAR / CARGAR PLAN
 # ══════════════════════════════════════════════════════════════
-def save_plan(plan: dict):
-    with open(PLAN_FILE, "w", encoding="utf-8") as f:
+def _plan_path(tenant_id=None) -> str:
+    """
+    Ruta del archivo de plan, scoped por tenant. El DEFAULT tenant (y None,
+    para el uso single-user/CLI) mantiene `reports/mi_plan_activo.json`; cada
+    otro tenant usa `reports/mi_plan_activo.<tenant_id>.json`.
+    """
+    if tenant_id is None:
+        return PLAN_FILE
+    try:
+        from borsenhirn.tenancy.constants import DEFAULT_TENANT_UUID
+        if tenant_id == DEFAULT_TENANT_UUID:
+            return PLAN_FILE
+    except Exception:   # pragma: no cover
+        pass
+    base, ext = os.path.splitext(PLAN_FILE)
+    return f"{base}.{tenant_id}{ext}"
+
+
+def save_plan(plan: dict, tenant_id=None):
+    with open(_plan_path(tenant_id), "w", encoding="utf-8") as f:
         json.dump(plan, f, ensure_ascii=False, indent=2)
 
 
-def load_plan() -> dict:
-    if os.path.exists(PLAN_FILE):
-        with open(PLAN_FILE, encoding="utf-8") as f:
+def load_plan(tenant_id=None) -> dict:
+    path = _plan_path(tenant_id)
+    if os.path.exists(path):
+        with open(path, encoding="utf-8") as f:
             return json.load(f)
     return {}
 
 
-def clear_plan():
-    if os.path.exists(PLAN_FILE):
-        os.remove(PLAN_FILE)
+def clear_plan(tenant_id=None):
+    path = _plan_path(tenant_id)
+    if os.path.exists(path):
+        os.remove(path)
         print("\n  Plan borrado.")
     else:
         print("\n  No hay plan activo.")

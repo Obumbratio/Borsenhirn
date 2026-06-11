@@ -24,12 +24,11 @@ def _install_fake_engine(monkeypatch):
 
     class _FakeEngine:
         def __init__(self, tenant_id, credentials=None, *,
-                     train=False, live=False, register_alerter=True):
+                     train=False, live=False):
             self.tenant_id = tenant_id
             self.credentials = credentials
             self.train = train
             self.live = live
-            self.register_alerter = register_alerter
             self.cycles = 0
             built.append(self)
 
@@ -71,16 +70,6 @@ def test_cycle_fn_passes_credentials_and_flags(monkeypatch):
     assert eng.credentials == ("k", "s")
     assert eng.live is True
     assert eng.train is True
-
-
-def test_alerter_registered_only_for_default_tenant(monkeypatch):
-    built = _install_fake_engine(monkeypatch)
-    fn = make_bot_cycle_fn()
-    fn(DEFAULT_TENANT_UUID, None)
-    fn(OTHER_TENANT, None)
-    by_tenant = {e.tenant_id: e.register_alerter for e in built}
-    assert by_tenant[DEFAULT_TENANT_UUID] is True
-    assert by_tenant[OTHER_TENANT] is False
 
 
 # ── Integración con el orquestador (sin DB; fake tenant_manager) ────

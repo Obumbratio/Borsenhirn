@@ -15,14 +15,15 @@ cuándo volver a llamarlo. El estado que sobrevive entre ciclos (trades del día
 día actual, régimen confirmado, modelo, scanner) vive como atributos de la
 instancia, así que una instancia por tenant se reusa entre pasadas.
 
-Limitaciones conocidas del wire-up multi-tenant inicial (TODO follow-up):
-- `send_alert`/`log_trade` y `register_external_alerter` son globales (un solo
-  webhook de Discord). Con varios tenants las alertas comparten canal.
-- El plan del usuario (`my_plan.load_plan/save_plan`) usa un archivo global,
-  no está scopeado por tenant todavía.
+Aislamiento per-tenant: cada engine rutea sus alertas a SU propio
+`safety.alert_mgr` (vía `_alert`, no al `send_alert` global), escribe el trade
+log a una ruta scoped por tenant (`_log_trade`), y lee/guarda el plan del
+usuario por tenant (`my_plan.*(tenant_id=...)`). El DEFAULT tenant conserva las
+rutas/archivos globales de siempre (compat single-user con dashboard/bot_api).
 """
 
 import os
+import csv
 import time
 import logging
 from datetime import datetime, timezone, timedelta
@@ -30,8 +31,6 @@ from zoneinfo import ZoneInfo
 from typing import Optional, Tuple
 
 import config
-import logger as _logger_mod  # para register_external_alerter
-from logger import log_trade, send_alert
 from data_fetcher import DataFetcher
 from indicators import add_all_indicators
 from ml_model import TradingModel
@@ -93,80 +92,6 @@ def wait_next_bar(tf):
     time.sleep(sl)
 
 
-def _handle_plan(plan, plan_strategy, fetcher, executor, risk, portfolio_value,
-                 trades_today, wins_today, losses_today, memory,
-                 safety=None, recent_trades_buffer=None, positions_list=None):
-    """Ejecuta un ciclo completo de la estrategia del plan del usuario."""
-    symbol = plan.get("symbol", "QQQ")
-    plan_capital = portfolio_value * plan.get("capital_pct", 0.3)
-
-    try:
-        end_dt   = datetime.now(timezone.utc)
-        start_dt = end_dt - timedelta(days=LOOKBACK_DAYS.get(config.TIMEFRAME, 60))
-        df_raw   = fetcher.get_historical(symbol, start_dt, end_dt, config.TIMEFRAME)
-
-        if df_raw.empty or len(df_raw) < 30:
-            logger.warning(f"[MI PLAN] Sin datos para {symbol}.")
-            return trades_today, wins_today, losses_today
-
-        df     = add_all_indicators(df_raw.copy())
-        signal = plan_strategy.generate_signal(df)
-        price  = fetcher.get_current_price(symbol)
-        if price <= 0:
-            price = float(df.iloc[-1]["close"])
-
-        position = executor.get_position(symbol)
-        pos_qty  = position.get("qty", 0.0)
-
-        logger.info(f"[MI PLAN] {symbol} | Señal: {signal['action'].upper()} | {signal['reason']}")
-
-        if signal["action"] == "buy" and pos_qty == 0:
-            qty = max(config.MIN_SHARES_PER_BUY, int(plan_capital / price))
-            if qty > 0 and trades_today < config.MAX_TRADES_PER_DAY:
-                if safety is not None:
-                    oid = safety.safe_submit_buy(
-                        executor, symbol, qty, price,
-                        positions_list=positions_list or [],
-                        recent_trades=recent_trades_buffer,
-                        portfolio_value=portfolio_value,
-                        reason=f"[MI PLAN] {signal['reason']}",
-                    )
-                else:
-                    oid = executor.submit_order(symbol, qty, "buy")
-                if oid:
-                    trades_today += 1
-                    plan["entry_price"]  = price
-                    plan["shares_held"]  = qty
-                    save_plan(plan)
-                    log_trade("buy", symbol, price, qty, f"[MI PLAN] {signal['reason']}")
-                    send_alert(f"MI PLAN BUY {qty}x{symbol} @ ${price:.2f} | {signal['reason']}")
-
-        elif signal["action"] == "sell" and pos_qty > 0:
-            oid = executor.submit_order(symbol, int(pos_qty), "sell")
-            if oid:
-                trades_today += 1
-                entry = plan.get("entry_price") or price
-                pnl   = memory.record_trade_outcome(
-                    symbol, entry, price, int(pos_qty), f"[MI PLAN] {signal['reason']}"
-                )
-                if pnl > 0:
-                    wins_today += 1
-                else:
-                    losses_today += 1
-                plan["entry_price"] = None
-                plan["shares_held"] = 0
-                save_plan(plan)
-                memory.clear_entry_price(symbol)  # por si el scanner tambien tenia entrada
-                log_trade("sell", symbol, price, int(pos_qty),
-                          f"[MI PLAN] {signal['reason']} | PnL=${pnl:+.2f}")
-                send_alert(f"MI PLAN SELL {int(pos_qty)}x{symbol} @ ${price:.2f} | PnL=${pnl:+.2f}")
-
-    except Exception as e:
-        logger.error(f"[MI PLAN] Error: {e}", exc_info=True)
-
-    return trades_today, wins_today, losses_today
-
-
 class BotEngine:
     """
     Motor del bot scoped a un tenant. `__init__` hace el setup (memoria, safety,
@@ -180,7 +105,6 @@ class BotEngine:
         *,
         train: bool = False,
         live: bool = False,
-        register_alerter: bool = True,
     ):
         self.tenant_id = tenant_id
         self.live = live
@@ -194,11 +118,11 @@ class BotEngine:
         self.memory.log_summary()
 
         # ── Safety stack: AlertManager + KillSwitch + SanityChecker ──
+        # Las alertas de ESTE engine van a su propia alert_mgr (vía self._alert),
+        # nunca al slot global de logger — así no se cruzan entre tenants.
         self.safety = SafetyStack.init_from_config(
             _safety_get_conn, tenant_id=tenant_id,
         )
-        if register_alerter:
-            _logger_mod.register_external_alerter(self.safety.alert_from_logger)
         self.recent_trades_buffer = make_recent_trades_buffer(maxlen=200)
         if self.safety.is_halted():
             reasons = [r["key"] for r in self.safety.killswitch.active_reasons()]
@@ -246,12 +170,12 @@ class BotEngine:
                     f1=m.get("f1", 0),
                     n_samples=m.get("n_samples", 0),
                 )
-                send_alert(f"Modelo entrenado. Accuracy={m.get('accuracy',0):.4f}")
+                self._alert(f"Modelo entrenado. Accuracy={m.get('accuracy',0):.4f}")
         else:
             self.model.load_model()
 
         # ── Cargar plan del usuario si existe ────────────────────
-        self.plan          = load_plan()
+        self.plan          = load_plan(tenant_id)
         self.plan_strategy = None
         if self.plan and self.plan.get("activo"):
             self.plan_strategy = PlanStrategy(plan=self.plan, model=self.model)
@@ -259,8 +183,8 @@ class BotEngine:
                         f"{self.plan.get('strategy_type')} | "
                         f"Capital plan={self.plan.get('capital_pct',0.3)*100:.0f}% | "
                         f"Capital seguro={self.plan.get('safe_capital_pct',0.7)*100:.0f}%")
-            send_alert(f"MI PLAN activado: {self.plan.get('symbol')} "
-                       f"({self.plan.get('capital_pct',0.3)*100:.0f}% capital)")
+            self._alert(f"MI PLAN activado: {self.plan.get('symbol')} "
+                        f"({self.plan.get('capital_pct',0.3)*100:.0f}% capital)")
         else:
             logger.info("Sin plan de usuario activo. Modo normal (solo SPY).")
 
@@ -308,8 +232,115 @@ class BotEngine:
         self.daily_pnl       = 0.0
         self.portfolio_value = config.CAPITAL
         self.current_regime  = None   # último régimen confirmado (para detectar cambios)
-        send_alert(f"Bot iniciado | Watchlist={config.WATCHLIST} @ {config.TIMEFRAME}"
-                   + (f" + MI PLAN {self.plan.get('symbol')}" if self.plan_strategy else ""))
+        self._alert(f"Bot iniciado | Watchlist={config.WATCHLIST} @ {config.TIMEFRAME}"
+                    + (f" + MI PLAN {self.plan.get('symbol')}" if self.plan_strategy else ""))
+
+    # ── Helpers tenant-scoped (alertas / trade log / plan) ──────────
+    def _alert(self, message: str, level: str = "INFO") -> None:
+        """
+        Emite una alerta scoped a ESTE tenant: la loguea y la rutea a la
+        AlertManager propia (Discord/Email/Dashboard del tenant). No usa el
+        `send_alert` global, así dos tenants nunca comparten canal.
+        """
+        logger.info(f"ALERTA [{level}]: {message}")
+        try:
+            self.safety.alert_from_logger(level, message)
+        except Exception as exc:   # una alerta nunca debe tumbar el ciclo
+            logger.error(f"_alert: {exc}")
+
+    def _trades_log_path(self) -> str:
+        """Ruta del CSV de trades, scoped por tenant (DEFAULT usa la global)."""
+        from borsenhirn.tenancy.constants import DEFAULT_TENANT_UUID
+        if self.tenant_id == DEFAULT_TENANT_UUID:
+            return config.TRADES_LOG
+        base, ext = os.path.splitext(config.TRADES_LOG)
+        return f"{base}.{self.tenant_id}{ext}"
+
+    def _log_trade(self, action, symbol, price, qty, reason) -> None:
+        """Escribe una fila al CSV de trades del tenant (la DB ya aísla por RLS)."""
+        path = self._trades_log_path()
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        exists = os.path.isfile(path)
+        row = {"timestamp": datetime.now(timezone.utc).isoformat(), "action": action,
+               "symbol": symbol, "price": price, "qty": qty,
+               "value": round(price * qty, 2), "reason": reason}
+        with open(path, "a", newline="", encoding="utf-8") as f:
+            w = csv.DictWriter(f, fieldnames=row.keys())
+            if not exists:
+                w.writeheader()
+            w.writerow(row)
+        logger.info(f"TRADE | {action.upper()} {qty}x{symbol} @ {price:.2f}")
+
+    def _handle_plan(self, plan, plan_strategy, positions_list):
+        """Ejecuta un ciclo completo de la estrategia del plan del usuario."""
+        fetcher  = self.fetcher
+        executor = self.executor
+        memory   = self.memory
+        safety   = self.safety
+        portfolio_value = self.portfolio_value
+        symbol = plan.get("symbol", "QQQ")
+        plan_capital = portfolio_value * plan.get("capital_pct", 0.3)
+
+        try:
+            end_dt   = datetime.now(timezone.utc)
+            start_dt = end_dt - timedelta(days=LOOKBACK_DAYS.get(config.TIMEFRAME, 60))
+            df_raw   = fetcher.get_historical(symbol, start_dt, end_dt, config.TIMEFRAME)
+
+            if df_raw.empty or len(df_raw) < 30:
+                logger.warning(f"[MI PLAN] Sin datos para {symbol}.")
+                return
+
+            df     = add_all_indicators(df_raw.copy())
+            signal = plan_strategy.generate_signal(df)
+            price  = fetcher.get_current_price(symbol)
+            if price <= 0:
+                price = float(df.iloc[-1]["close"])
+
+            position = executor.get_position(symbol)
+            pos_qty  = position.get("qty", 0.0)
+
+            logger.info(f"[MI PLAN] {symbol} | Señal: {signal['action'].upper()} | {signal['reason']}")
+
+            if signal["action"] == "buy" and pos_qty == 0:
+                qty = max(config.MIN_SHARES_PER_BUY, int(plan_capital / price))
+                if qty > 0 and self.trades_today < config.MAX_TRADES_PER_DAY:
+                    oid = safety.safe_submit_buy(
+                        executor, symbol, qty, price,
+                        positions_list=positions_list or [],
+                        recent_trades=self.recent_trades_buffer,
+                        portfolio_value=portfolio_value,
+                        reason=f"[MI PLAN] {signal['reason']}",
+                    )
+                    if oid:
+                        self.trades_today += 1
+                        plan["entry_price"]  = price
+                        plan["shares_held"]  = qty
+                        save_plan(plan, self.tenant_id)
+                        self._log_trade("buy", symbol, price, qty, f"[MI PLAN] {signal['reason']}")
+                        self._alert(f"MI PLAN BUY {qty}x{symbol} @ ${price:.2f} | {signal['reason']}")
+
+            elif signal["action"] == "sell" and pos_qty > 0:
+                oid = executor.submit_order(symbol, int(pos_qty), "sell")
+                if oid:
+                    self.trades_today += 1
+                    entry = plan.get("entry_price") or price
+                    pnl   = memory.record_trade_outcome(
+                        symbol, entry, price, int(pos_qty), f"[MI PLAN] {signal['reason']}"
+                    )
+                    if pnl > 0:
+                        self.wins_today += 1
+                    else:
+                        self.losses_today += 1
+                    plan["entry_price"] = None
+                    plan["shares_held"] = 0
+                    save_plan(plan, self.tenant_id)
+                    memory.clear_entry_price(symbol)  # por si el scanner tambien tenia entrada
+                    self._log_trade("sell", symbol, price, int(pos_qty),
+                                    f"[MI PLAN] {signal['reason']} | PnL=${pnl:+.2f}")
+                    self._alert(f"MI PLAN SELL {int(pos_qty)}x{symbol} @ ${price:.2f} | PnL=${pnl:+.2f}")
+
+        except Exception as e:
+            logger.error(f"[MI PLAN] Error: {e}", exc_info=True)
 
     def run_cycle(self) -> dict:
         """
@@ -371,12 +402,12 @@ class BotEngine:
                             f1=m.get("f1", 0),
                             n_samples=m.get("n_samples", 0),
                         )
-                        send_alert(f"Modelo reentrenado. Accuracy={m.get('accuracy',0):.4f}")
+                        self._alert(f"Modelo reentrenado. Accuracy={m.get('accuracy',0):.4f}")
                 except Exception as e:
                     logger.error(f"Retrain fallido: {e}")
 
             # Recargar plan en cada nuevo dia (puede haber sido modificado)
-            self.plan = load_plan()
+            self.plan = load_plan(self.tenant_id)
             if self.plan and self.plan.get("activo"):
                 self.plan_strategy = PlanStrategy(plan=self.plan, model=model)
             else:
@@ -448,7 +479,7 @@ class BotEngine:
                         f"breadth={regime_info['breadth_pct']:.1%}"
                         if regime_info["breadth_pct"] is not None else
                         f"[REGIME] Cambio: {prev} → {regime}")
-            send_alert(f"[REGIME] {prev} → {regime} | "
+            self._alert(f"[REGIME] {prev} → {regime} | "
                        f"VIX={regime_info['vix']:.1f} | "
                        f"SPY {regime_info['spy_trend']} | "
                        f"conf={regime_info['confidence']:.0%}")
@@ -519,13 +550,13 @@ class BotEngine:
                     memory.update_regime_stat(entry_regime, won, pnl)
                     memory.clear_entry_price(symbol)
                     memory.clear_entry_ctx(symbol)
-                    log_trade("sell", symbol, price, qty,
+                    self._log_trade("sell", symbol, price, qty,
                               f"[SCANNER] {entry['signal']['reason']} | PnL=${pnl:+.2f}")
-                    send_alert(f"SELL {qty}x{symbol} @ ${price:.2f} | PnL=${pnl:+.2f}")
+                    self._alert(f"SELL {qty}x{symbol} @ ${price:.2f} | PnL=${pnl:+.2f}")
                 else:
-                    log_trade("sell", symbol, price, qty,
+                    self._log_trade("sell", symbol, price, qty,
                               f"[SCANNER] {entry['signal']['reason']}")
-                    send_alert(f"SELL {qty}x{symbol} @ ${price:.2f}")
+                    self._alert(f"SELL {qty}x{symbol} @ ${price:.2f}")
                 held.discard(symbol)
 
         # ── Take-profit / Trailing stop / Stop-loss desde precio de entrada ─
@@ -570,9 +601,9 @@ class BotEngine:
                     )
                     memory.clear_entry_price(sym)
                     memory.clear_entry_ctx(sym)
-                    log_trade("sell", sym, cur_price, qty,
+                    self._log_trade("sell", sym, cur_price, qty,
                               f"Take-profit {pct_chg:.1%} | PnL=${pnl:+.2f}")
-                    send_alert(f"TAKE-PROFIT {qty}x{sym} @ ${cur_price:.2f} "
+                    self._alert(f"TAKE-PROFIT {qty}x{sym} @ ${cur_price:.2f} "
                                f"| +{pct_chg:.1%} | PnL=${pnl:+.2f}")
                     held.discard(sym)
 
@@ -595,9 +626,9 @@ class BotEngine:
                     )
                     memory.clear_entry_price(sym)
                     memory.clear_entry_ctx(sym)
-                    log_trade("sell", sym, cur_price, qty,
+                    self._log_trade("sell", sym, cur_price, qty,
                               f"Trailing stop | max=${highest:.2f} | {pct_chg:.1%} desde entrada | PnL=${pnl:+.2f}")
-                    send_alert(f"TRAILING STOP {qty}x{sym} @ ${cur_price:.2f} "
+                    self._alert(f"TRAILING STOP {qty}x{sym} @ ${cur_price:.2f} "
                                f"| max=${highest:.2f} | PnL=${pnl:+.2f}")
                     held.discard(sym)
 
@@ -618,9 +649,9 @@ class BotEngine:
                     )
                     memory.clear_entry_price(sym)
                     memory.clear_entry_ctx(sym)
-                    log_trade("sell", sym, cur_price, qty,
+                    self._log_trade("sell", sym, cur_price, qty,
                               f"Stop-loss entrada {pct_chg:.1%} | PnL=${pnl:+.2f}")
-                    send_alert(f"STOP-LOSS {qty}x{sym} @ ${cur_price:.2f} "
+                    self._alert(f"STOP-LOSS {qty}x{sym} @ ${cur_price:.2f} "
                                f"| {pct_chg:.1%} | PnL=${pnl:+.2f}")
                     held.discard(sym)
 
@@ -667,29 +698,27 @@ class BotEngine:
                     ml_prob  = entry["signal"].get("ml_prob", 0.5),
                     entry_price = price,
                 )
-                log_trade("buy", symbol, price, qty,
+                self._log_trade("buy", symbol, price, qty,
                           f"[SCANNER] {entry['signal']['reason']}")
-                send_alert(f"BUY {qty}x{symbol} @ ${price:.2f} | "
+                self._alert(f"BUY {qty}x{symbol} @ ${price:.2f} | "
                            f"{entry['signal']['reason'][:50]}")
                 held.add(symbol)
 
-        # ── MI PLAN (activo del usuario, capital separado) ─
-        if plan_strategy:
-            plan = load_plan()
-            self.plan = plan
-            trades_today, wins_today, losses_today = _handle_plan(
-                plan, plan_strategy, fetcher, executor,
-                risk, portfolio_value, trades_today,
-                wins_today, losses_today, memory,
-                safety=safety,
-                recent_trades_buffer=self.recent_trades_buffer,
-                positions_list=positions_list,
-            )
-
-        # Persistir contadores actualizados en la instancia
+        # Sincronizar los contadores locales (mutados por sells/buys) a la
+        # instancia antes del plan: _handle_plan opera sobre self.*.
         self.trades_today = trades_today
         self.wins_today   = wins_today
         self.losses_today = losses_today
+
+        # ── MI PLAN (activo del usuario, capital separado) ─
+        if plan_strategy:
+            plan = load_plan(self.tenant_id)
+            self.plan = plan
+            self._handle_plan(plan, plan_strategy, positions_list)
+
+        trades_today = self.trades_today
+        wins_today   = self.wins_today
+        losses_today = self.losses_today
 
         # Guardar estado del dia (sobrevive crash/reinicio)
         memory.update_daily_state(
@@ -717,6 +746,6 @@ class BotEngine:
 
 
 __all__ = [
-    "BotEngine", "is_market_open", "wait_next_bar", "_handle_plan",
+    "BotEngine", "is_market_open", "wait_next_bar",
     "_safety_get_conn", "SLEEP_MAP", "LOOKBACK_DAYS",
 ]
