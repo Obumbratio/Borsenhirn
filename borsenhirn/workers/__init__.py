@@ -12,6 +12,7 @@ from borsenhirn.workers.orchestrator import (
     WorkerOrchestrator,
 )
 from borsenhirn.workers.runner import make_halted_check, run_all_tenants
+from borsenhirn.workers.anomaly_scan import scan_anomalies_all_tenants
 
 __all__ = [
     "load_broker_credentials",
@@ -19,4 +20,5 @@ __all__ = [
     "WorkerOrchestrator",
     "make_halted_check",
     "run_all_tenants",
+    "scan_anomalies_all_tenants",
 ]

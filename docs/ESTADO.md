@@ -44,7 +44,12 @@ Cierres por bloque en `docs/B{n}_CLOSEOUT.md`.
 - [ ] **Cron de backups** (`scripts/db_backup.sh`) + destino offsite — [B9_BACKUP_RUNBOOK.md](B9_BACKUP_RUNBOOK.md).
 - [ ] **Frontend Next.js** (Clerk + checkout/portal + modal legal) — esfuerzo aparte.
 - [x] **Wire-up del ciclo real del bot** en el worker (`cycle_fn`) — hecho 2026-06-11
-      (`BotEngine` + `make_bot_cycle_fn`). Falta: smoke real 2-tenants paper + `scan_and_alert` por tenant.
+      (`BotEngine` + `make_bot_cycle_fn`); smoke real paper validado.
+- [x] **`scan_and_alert` por tenant** — hecho 2026-06-11: pase de anomalías
+      `borsenhirn/workers/anomaly_scan.py::scan_anomalies_all_tenants` (itera ACTIVE
+      excl. SYSTEM, alert_mgr scoped por tenant, no saltea HALT, aísla errores).
+      Cadencia: agendar por cron/loop. AlertManager factorizado a
+      `bootstrap.build_alert_manager_from_config`. Suite: 404 passed.
 
 ### Estado por bloque (todos ✅ backend)
 B1 RLS · B2 Vault · B3 Auth Clerk · B4 Stripe · B5 Audit · B6 Workers ·

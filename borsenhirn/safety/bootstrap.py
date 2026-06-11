@@ -77,6 +77,37 @@ from borsenhirn.safety.state_store_pg import (
 logger = logging.getLogger(__name__)
 
 
+def build_alert_manager_from_config(
+    get_conn_fn: Callable,
+    tenant_id: Optional[str] = None,
+) -> AlertManager:
+    """
+    Construye un AlertManager scoped al tenant desde `config.py`
+    (Discord + Email + escritura al dashboard bajo RLS). Es la misma
+    construcción que usa `SafetyStack.init_from_config`, factorizada para
+    poder armar alertas por tenant sin levantar todo el safety stack
+    (p.ej. el pase de anomalías B10).
+    """
+    import config  # import tardío para evitar ciclos
+    smtp = None
+    if config.SMTP_USER and config.SMTP_PASSWORD:
+        smtp = SmtpConfig(
+            host=config.SMTP_HOST,
+            port=config.SMTP_PORT,
+            user=config.SMTP_USER,
+            password=config.SMTP_PASSWORD,
+            use_tls=config.SMTP_USE_TLS,
+        )
+    return build_default_manager(
+        discord_webhook_url=config.DISCORD_WEBHOOK_URL or None,
+        smtp=smtp,
+        email_to=config.ALERT_EMAIL_TO or None,
+        db_write_fn=make_dashboard_db_write(get_conn_fn, tenant_id=tenant_id),
+        dedupe_window_sec=config.ALERT_DEDUPE_WINDOW_SEC,
+        min_level=AlertLevel.INFO,
+    )
+
+
 @dataclass
 class SafetyStack:
     """
@@ -105,23 +136,7 @@ class SafetyStack:
         import config  # import tardío para evitar ciclos
 
         # ── AlertManager ────
-        smtp = None
-        if config.SMTP_USER and config.SMTP_PASSWORD:
-            smtp = SmtpConfig(
-                host=config.SMTP_HOST,
-                port=config.SMTP_PORT,
-                user=config.SMTP_USER,
-                password=config.SMTP_PASSWORD,
-                use_tls=config.SMTP_USE_TLS,
-            )
-        alert_mgr = build_default_manager(
-            discord_webhook_url=config.DISCORD_WEBHOOK_URL or None,
-            smtp=smtp,
-            email_to=config.ALERT_EMAIL_TO or None,
-            db_write_fn=make_dashboard_db_write(get_conn_fn, tenant_id=tenant_id),
-            dedupe_window_sec=config.ALERT_DEDUPE_WINDOW_SEC,
-            min_level=AlertLevel.INFO,
-        )
+        alert_mgr = build_alert_manager_from_config(get_conn_fn, tenant_id)
 
         # ── KillSwitch ────
         ks_store = PostgresStateStore(get_conn_fn, tenant_id=tenant_id)
