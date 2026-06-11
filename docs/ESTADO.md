@@ -5,6 +5,22 @@
 ## Última actualización
 2026-06-11
 
+## ⛔ NO HAY PROD DESPLEGADO — leer antes de pensar en B1 Bloque 8 (2026-06-11)
+**No existe ninguna base de datos `borsenhirn` de producción viva, ni VPS, ni host
+remoto.** Verificado en WSL: no hay `~/.ssh/config`, `known_hosts` solo tiene GitHub,
+la máquina nunca se conectó a ningún server. El "VPS de Hetzner" fue un **malentendido**:
+"Hetzner" aparece solo como *ejemplo de proveedores* en [DEPLOY_ALWAYS_ON.md](DEPLOY_ALWAYS_ON.md)
+(todo ese doc está en condicional — es cómo se *desplegaría*, no algo hecho).
+
+→ **B1 Bloque 8 NO es el siguiente paso**: no hay DB a la que apuntar. Los scripts
+`b1_block8_*` (core + extras) están listos y validados, pero **no se corren hasta que
+exista prod.**
+
+→ **El siguiente paso real es una DECISIÓN de fondo, a tomar en frío (no ahora):**
+¿la versión SaaS multi-tenant vive en un VPS de un tercero? Eso **rompe el principio
+local-first** del proyecto, y Uriel quiere decidirlo conscientemente antes de alquilar
+nada. Hasta esa decisión, no se despliega ni se migra nada.
+
 ## 🔌 Wire-up del ciclo real del bot al worker multi-tenant (2026-06-11)
 Hecho: la lógica del motor se extrajo de `main.run()` (656 líneas) a
 `borsenhirn/engine.py::BotEngine` (setup en `__init__` + un ciclo en `run_cycle()`,
@@ -28,13 +44,16 @@ creds por tenant; canales de alerta (Discord/email) por tenant en su `alert_mgr`
 ## 🏁 Dónde voy — ROADMAP SaaS B1..B10 COMPLETO y MERGEADO A MAIN
 Los 10 bloqueadores (backends) construidos y testeados en `borsenhirn_dev`, en
 **PR #1 mergeado a `main`** (`e483556`). Tests: 387 baseline + 41 integración
-(gated `RUN_DB_INTEGRATION`), todo verde. Producción `borsenhirn` **intacta**.
+(gated `RUN_DB_INTEGRATION`), todo verde. **No hay `borsenhirn` de producción
+desplegada** (ver aviso ⛔ arriba) — todo el trabajo vive en `borsenhirn_dev`.
 Cierres por bloque en `docs/B{n}_CLOSEOUT.md`.
 
 ### ✅ Pendientes OPERACIONALES (no es código nuevo; checklist próxima sesión)
-- [ ] **Ejecutar "B1 Bloque 8"** en el host de prod — el SaaS NO está vivo hasta esto.
-      (prod `borsenhirn` vive en otra máquina, no en localhost). Scripts:
-      `scripts/b1_block8_*`. Plan: [B1_BLOCK8_PLAN.md](B1_BLOCK8_PLAN.md).
+- [ ] **DECISIÓN de despliegue (BLOQUEA B1 Bloque 8):** ¿SaaS en VPS de tercero sí/no?
+      (rompe local-first). NO hay prod desplegado — ver el aviso ⛔ arriba.
+- [ ] **Ejecutar "B1 Bloque 8"** — SOLO cuando exista prod. Scripts `scripts/b1_block8_*`
+      (core + extras) listos/validados. Plan: [B1_BLOCK8_PLAN.md](B1_BLOCK8_PLAN.md).
+      Hoy NO hay DB de prod a la que apuntar.
 - [ ] **Migrar a prod** las tablas/columnas de B3..B7: `clerk_user_id`, billing en
       `tenants`, `audit_log`, `legal_acceptance`. **Variantes prod LISTAS y validadas
       (2026-06-11):** `scripts/b1_block8_extras_prod_migration.sql` + `_extras_apply.sh`
@@ -132,10 +151,10 @@ Falta (aparte): agendar cron + destino offsite en prod.
 Integración completa: 41 passed.
 
 ## 🏁 ROADMAP SaaS COMPLETO (backends): B1..B10 ✅
-Los 10 bloqueadores construidos y testeados en dev. **Pendientes operativos:**
-ejecutar "B1 Bloque 8" (aplicar a prod en el host de prod) + las migraciones de
-clerk_id/billing/audit/legal; poner keys reales (Clerk/Stripe); cron de backups;
-frontend Next.js. Cierres por bloque en docs/B{n}_CLOSEOUT.md.
+Los 10 bloqueadores construidos y testeados en dev. **Pendientes operativos
+(todos bloqueados por la decisión de despliegue — NO hay prod, ver ⛔ arriba):**
+"B1 Bloque 8" + migraciones clerk_id/billing/audit/legal (scripts listos); keys
+reales (Clerk/Stripe); cron de backups; frontend Next.js. Cierres: docs/B{n}_CLOSEOUT.md.
 
 ## Estado del Bloque 5 (refactor capa de app)
 | Sub-bloque | Qué | Estado | Commit |
@@ -158,13 +177,17 @@ frontend Next.js. Cierres por bloque en docs/B{n}_CLOSEOUT.md.
 - Rol `borsenhirn_app` creado; `config.py` lee `APP_DB_USER`/`APP_DB_PASSWORD` con fallback a admin.
 - Bug latente arreglado: `main.py` importaba `_get_conn` borrado en 5.4.a → `import main` OK.
 
-## ⏳ PENDIENTE CLAVE — ejecutar B1 Bloque 8 en prod
-Intentado 2026-06-06: **prod `borsenhirn` NO está en el Postgres de localhost**
-(solo `borsenhirn_dev` + `postgres`). La prod real vive en otra máquina/host
-(deployment), inalcanzable desde esta sesión, y el usuario no tiene a mano dónde/cómo.
-**Acción cuando se retome:** correr en el host de prod (con un `.env` que apunte a
-`borsenhirn`): `b1_block8_backup.sh` → `apply.sh` → `create_role.sh` → `verify.sh`.
-Todo validado en dev; scripts en `scripts/b1_block8_*`. Plan: [B1_BLOCK8_PLAN.md](B1_BLOCK8_PLAN.md).
+## ⏳ B1 Bloque 8 — BLOQUEADO: no hay prod desplegado (corregido 2026-06-11)
+**Corrección importante:** la suposición previa de que "la prod real vive en otra
+máquina/host inalcanzable" era **errónea**. Verificado en WSL (2026-06-11): NO hay
+ningún server/VPS — `~/.ssh/config` no existe, `known_hosts` solo tiene GitHub, la
+máquina nunca se conectó a ningún host. **No existe `borsenhirn` de producción en
+ningún lado.** El único Postgres es el local (`borsenhirn_dev` + `postgres`).
+
+**Por lo tanto B1 Bloque 8 NO se puede ni se debe ejecutar todavía** — no hay DB a
+la que apuntar. Los scripts (`b1_block8_*` core + extras) están listos/validados y
+esperan. **El paso previo obligatorio es la DECISIÓN de despliegue** (SaaS en VPS de
+tercero sí/no — rompe local-first), que Uriel toma en frío. Ver el aviso ⛔ al inicio.
 
 ## Hallazgo RESUELTO (B7) — pool-leak en safety stack
 `PostgresStateStore` sacaba conn con `self.get_conn()` y nunca la devolvía → el bot
