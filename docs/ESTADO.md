@@ -35,9 +35,11 @@ Cierres por bloque en `docs/B{n}_CLOSEOUT.md`.
 - [ ] **Ejecutar "B1 Bloque 8"** en el host de prod — el SaaS NO está vivo hasta esto.
       (prod `borsenhirn` vive en otra máquina, no en localhost). Scripts:
       `scripts/b1_block8_*`. Plan: [B1_BLOCK8_PLAN.md](B1_BLOCK8_PLAN.md).
-- [ ] **Migrar a prod** las tablas/columnas de B3..B9: `clerk_user_id`,
-      billing en `tenants`, `audit_log`, `legal_acceptance` (con B8). Scripts:
-      `scripts/b3_block1_*`, `b4_block1_*`, `b5_block1_*`, `b7_block1_*`.
+- [ ] **Migrar a prod** las tablas/columnas de B3..B7: `clerk_user_id`, billing en
+      `tenants`, `audit_log`, `legal_acceptance`. **Variantes prod LISTAS y validadas
+      (2026-06-11):** `scripts/b1_block8_extras_prod_migration.sql` + `_extras_apply.sh`
+      (consolidado, guard prod, atómico/idempotente, validado en DB scratch). Corre como
+      Paso 4.5 (tras rol + verify core). Los `b{3,4,5,7}_block1_*.sql` originales son dev-only.
 - [ ] **Keys reales en `.env` de prod:** Clerk (`AUTH_VERIFIER=clerk`,
       `CLERK_ISSUER`, `CLERK_JWKS_URL`), Stripe (`BILLING_PROVIDER=stripe`,
       `STRIPE_*`), `ADMIN_API_KEY`, master key vía secret manager.

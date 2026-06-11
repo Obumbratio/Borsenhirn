@@ -104,6 +104,18 @@ Artefactos a generar (cuando apruebes):
 - [ ] Las 4 `_legacy_*` siguen ahí con su data intacta.
 - **GATE 3:** todo verde antes de re-arrancar el bot.
 
+### Paso 4.5 — EXTRAS B3..B7 (clerk_id + billing + audit_log + legal)
+`B1_ALLOW_PROD=1 bash scripts/b1_block8_extras_apply.sh` → corre
+`b1_block8_extras_prod_migration.sql` (atómico/idempotente, guard prod):
+- B3: `tenants.clerk_user_id` (UNIQUE). B4: 4 columnas billing (`stripe_customer_id`
+  UNIQUE, `stripe_subscription_id`, `plan`, `current_period_end`).
+- B5: tabla `audit_log` (RLS + append-only). B7: tabla `legal_acceptance` (RLS + append-only).
+- **Orden:** va DESPUÉS del rol (Paso 3, los GRANTs append-only lo requieren — aborta si
+  falta) y DESPUÉS del verify core (Paso 4): el conteo "17" de `verify.sh` asume que
+  `audit_log`/`legal_acceptance` aún no existen. Tras las extras, FORCE RLS = 19 (esperado).
+- Validado en DB scratch local (creación + idempotencia) y guard probado contra dev.
+- **GATE 2b:** verificación intra-txn (clerk+billing+ambas tablas RLS+append-only) o rollback.
+
 ### Paso 5 — Re-arranque controlado
 - [ ] Arrancar el bot apuntando a prod con las APP creds, en modo `--once` primero.
 - [ ] Confirmar que escribe/lee bien (un run real corto).
