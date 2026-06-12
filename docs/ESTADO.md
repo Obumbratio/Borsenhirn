@@ -33,11 +33,20 @@ Plan completo (por qué migrar + opciones L/C + secuencia): [DESPLIEGUE_PROD_PLA
 (Nota menor: ese `docker-compose.yml` tiene la password `uriel` hardcodeada y commiteada
 — local/bajo riesgo, pero no reusarla si algún día prod sale de tu máquina.)
 
-## 🖥️ Frontend Next.js — ARRANCADO (2026-06-11), bloqueado por prereqs del usuario
-Decisión de alcance: construir en rebanadas verticales. **Rebanada 1 (elegida):
-scaffold Next.js 14 (App Router) + TS + Tailwind + `@clerk/nextjs` + página protegida
-que llama a `/me`** (valida el cableado Clerk→JWT→backend, lo más riesgoso). Después:
-gate legal → billing → dashboard.
+## 🖥️ Frontend Next.js — REBANADA 1 SCAFFOLDEADA (2026-06-11), falta app Clerk
+Construir en rebanadas verticales. **Rebanada 1 (HECHA a nivel código):** `frontend/`
+= Next.js 14 (App Router) + TS + Tailwind + `@clerk/nextjs` **v6** (v7 exige Next 15;
+quedamos en Next 14). Node v24.16.0 vía nvm (sourcear `~/.nvm/nvm.sh` en shells no-interactivos).
+Archivos: `src/middleware.ts` (protege /dashboard), `src/app/layout.tsx` (ClerkProvider +
+header), `src/app/page.tsx` (landing), `src/app/dashboard/page.tsx` (server component:
+toma JWT de Clerk y llama `GET /me`), `.env.local.example`. **TypeScript COMPILA**; el
+build solo falla en prerender por `Missing publishableKey` (esperado sin keys).
+Correr: `cd frontend && npm run dev` (tras poner keys). Después de R1: gate legal → billing → dashboard.
+
+**Falta SOLO (del usuario) para correr/verificar R1 end-to-end:** crear app Clerk dev →
+poner `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`/`CLERK_SECRET_KEY` en `frontend/.env.local` +
+`AUTH_VERIFIER=clerk`/`CLERK_ISSUER`/`CLERK_JWKS_URL` en el `.env` del backend. Ahí
+levantamos API (:8000) + `npm run dev` (:3000) y verificamos login → `/me`.
 
 **Contrato del backend** (`borsenhirn/api/main.py`, FastAPI :8000) — verificado vivo:
 `/health`, `/`, `/legal/current` responden OK. `/me`, `/me/legal*`, `/billing/*`,
