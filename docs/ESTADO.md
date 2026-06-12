@@ -71,7 +71,12 @@ queda solo en el auto-trader interno. B (tabla global) es upgrade futuro si hace
   Verificado: guardrail verde, tarjeta real de ejemplo (AAPL, cada factor con fuente), 2 usuarios→
   byte-idéntico. 410 tests (+ test_cards). Decisión: NO usar `m1_research` (LLM) para inventar prosa;
   si se quiere narrador LLM, sería capa aparte CONSTREÑIDA a estos factores (riesgo a evaluar).
-- 3c: calculadora (lógica pura).
+- **3c HECHO (2026-06-12):** calculadora de posición, **lógica TS pura sin backend**
+  (`frontend/src/lib/position-calculator.ts`). El user mete capital + %riesgo sobre los
+  niveles del análisis → qty/costo/escenarios/RR; el tamaño sale de SU regla, no de una
+  opinión. Tests vitest (`npm test`): **8 verdes** incl. bordes — stop>=entrada (riesgo/acción
+  ≤0, sin div por cero ni negativos), capital insuficiente→0 acciones (no fracciones),
+  redondeo (acciones enteras, dinero 2 decimales). Frontend UI: pasada post-Clerk.
 - 3d: `POST /me/orders` (ejecución MANUAL, una orden, cuenta del user) + salidas TP/SL =
   alerta+botón. **Mostrar DISEÑO del endpoint ANTES de construir** (superficie más delicada).
 Paso 4: track record.
