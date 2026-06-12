@@ -71,6 +71,63 @@ def me(tenant_id: str = Depends(get_current_tenant)):
     return {"tenant_id": tenant_id}
 
 
+# ── Conectar broker (BYO Alpaca, paper-first) — Paso 3a ──────────────────────
+class BrokerCreds(BaseModel):
+    api_key: str
+    api_secret: str
+
+
+def _credential_store(tenant_id: str, conn):
+    """CredentialStore (vault B2) scoped al tenant. Cifra en reposo; la plataforma
+    nunca custodia dinero, solo guarda las keys del user para que ÉL ejecute."""
+    from borsenhirn.security import CredentialStore, Vault
+    return CredentialStore(lambda: conn, Vault.from_provider(), tenant_id=tenant_id)
+
+
+@app.post("/me/broker")
+def connect_broker(body: BrokerCreds, tenant_id: str = Depends(get_current_tenant)):
+    """
+    Conecta la cuenta Alpaca (PAPER) del usuario: valida las keys contra Alpaca y,
+    si sirven, las guarda cifradas en el vault (BYO broker). NO custodiamos dinero.
+    """
+    from execution import Executor
+    try:
+        acc = Executor(api_key=body.api_key, secret_key=body.api_secret,
+                       paper=True).get_account()
+    except Exception:
+        acc = None
+    if not acc:
+        raise HTTPException(status_code=400,
+                            detail="no pude validar las credenciales con Alpaca (paper)")
+    with bdb.get_conn(role="app") as conn:
+        _credential_store(tenant_id, conn).set(tenant_id, "alpaca", body.api_key, body.api_secret)
+    return {"connected": True, "provider": "alpaca", "equity": acc.get("equity")}
+
+
+@app.get("/me/broker")
+def broker_status(tenant_id: str = Depends(get_current_tenant)):
+    """¿Hay Alpaca conectado? Devuelve estado + key ENMASCARADA (nunca el secreto)."""
+    creds = None
+    with bdb.get_conn(role="app") as conn:
+        try:
+            creds = _credential_store(tenant_id, conn).get(tenant_id, "alpaca")
+        except Exception as exc:   # master key/desencriptado: no exponer detalle
+            logger.warning("broker_status get falló: %s", exc)
+    if not creds:
+        return {"connected": False, "provider": "alpaca"}
+    k = creds.api_key
+    masked = (k[:4] + "…" + k[-4:]) if len(k) > 8 else "…"
+    return {"connected": True, "provider": "alpaca", "api_key_masked": masked}
+
+
+@app.delete("/me/broker")
+def disconnect_broker(tenant_id: str = Depends(get_current_tenant)):
+    """Desconecta Alpaca: borra las credenciales del vault."""
+    with bdb.get_conn(role="app") as conn:
+        ok = _credential_store(tenant_id, conn).delete(tenant_id, "alpaca")
+    return {"connected": False, "deleted": bool(ok)}
+
+
 class LegalAccept(BaseModel):
     document: str   # 'terms' | 'privacy'
     version: str

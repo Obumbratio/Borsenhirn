@@ -58,8 +58,16 @@ y esos tokens no validan. Probado vivo: sin token→401; 2 usuarios distintos→
 byte-idéntica (impersonal). 406 tests verdes (+ test_client_feed). Decisión Opción C: el
 único insumo aprendido de la señal era `symbol_score` (de UNA cuenta) → fuera del cliente,
 queda solo en el auto-trader interno. B (tabla global) es upgrade futuro si hace falta.
-Pendiente: Paso 3 (superficies cliente: conectar Alpaca → análisis+IA → calculadora →
-botón; salidas TP/SL = alerta+botón), Paso 4 (track record).
+**Paso 3 en sub-pasos (checkpoint en cada uno; frontend va en pasada aparte post-Clerk):**
+- **3a HECHO (2026-06-12):** backend conectar Alpaca BYO. `POST/GET/DELETE /me/broker`
+  en `api/main.py` — valida keys contra Alpaca (paper) y las guarda CIFRADAS en el vault
+  (B2, scoped por tenant/RLS); GET devuelve key enmascarada (sin secreto). Nace cerrado
+  (`get_current_tenant`). Smoke vivo OK (sin token→401, inválidas→400, válidas→connected+equity,
+  delete→desconectado). Pendiente: form frontend (post-Clerk).
+- 3b: análisis+IA (enriquecer /signals con tesis/qué invalida). 3c: calculadora (lógica pura).
+- 3d: `POST /me/orders` (ejecución MANUAL, una orden, cuenta del user) + salidas TP/SL =
+  alerta+botón. **Mostrar DISEÑO del endpoint ANTES de construir** (superficie más delicada).
+Paso 4: track record.
 Nota: `make_bot_cycle_fn` sigue en `workers/` (no se relocó); cubierto porque el
 guardrail también prohíbe `workers.bot_cycle` en el cliente.
 
