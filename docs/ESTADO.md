@@ -42,11 +42,16 @@ Pivot de producto: el auto-trader NO se mata, se SEPARA del producto de cliente 
 - `engine.py::AutoExecutor.execute()` (cara interna auto-trade: sells/TP/SL/buys/plan +
   bookkeeping, VERBATIM de hoy; las salidas y `update_highest_price` quedan acá por orden).
 - `BotEngine` = orquestador (lifecycle → analyze → execute).
-Verificado: **404 tests verdes** + smoke real paper (vie 15:30 ET) corrió un ciclo
-completo por el split, regime BULL, sin error. **CHECKPOINT: parar antes del Paso 1.5.**
-Pendiente: Paso 1.5 (mover AutoExecutor a `internal/autotrader/` + guardrail de import),
-Paso 2 (cerebro global), Paso 3 (superficies cliente: conectar Alpaca → análisis+IA →
-calculadora → botón; salidas TP/SL = alerta+botón), Paso 4 (track record).
+Verificado: 404 tests verdes + smoke real paper. **Paso 1.5 HECHO (2026-06-12):**
+`AutoExecutor` + `CycleCtx` movidos a `borsenhirn/internal/autotrader/` (paquete marcado
+NO-producto). Guardrail `tests/test_red_line_guardrail.py`: subproceso importa
+`borsenhirn.api.main` y FALLA si carga `internal.autotrader`/`engine`/`workers.bot_cycle`
+(directo o transitivo). Probado en VERDE y forzado a ROJO (import temporal en api/main.py
+→ test falló → revertido). **405 tests verdes.**
+Pendiente: Paso 2 (cerebro global), Paso 3 (superficies cliente: conectar Alpaca →
+análisis+IA → calculadora → botón; salidas TP/SL = alerta+botón), Paso 4 (track record).
+Nota: `make_bot_cycle_fn` sigue en `workers/` (no se relocó); queda cubierto porque el
+guardrail también prohíbe `workers.bot_cycle` en el cliente.
 
 ## 🖥️ Frontend Next.js — REBANADA 1 SCAFFOLDEADA (2026-06-11), falta app Clerk
 Construir en rebanadas verticales. **Rebanada 1 (HECHA a nivel código):** `frontend/`
