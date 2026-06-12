@@ -48,9 +48,19 @@ NO-producto). Guardrail `tests/test_red_line_guardrail.py`: subproceso importa
 `borsenhirn.api.main` y FALLA si carga `internal.autotrader`/`engine`/`workers.bot_cycle`
 (directo o transitivo). Probado en VERDE y forzado a ROJO (import temporal en api/main.py
 → test falló → revertido). **405 tests verdes.**
-Pendiente: Paso 2 (cerebro global), Paso 3 (superficies cliente: conectar Alpaca →
-análisis+IA → calculadora → botón; salidas TP/SL = alerta+botón), Paso 4 (track record).
-Nota: `make_bot_cycle_fn` sigue en `workers/` (no se relocó); queda cubierto porque el
+**Paso 2 HECHO (Opción C — sin store, 2026-06-12):** señal del cliente = cerebro
+compartido (modelo global `.pkl` + scanner con `memory=None` → score neutral 0.5 →
+impersonal por construcción). `borsenhirn/signals/client_feed.py` (`get_client_signals()`,
+caché TTL 1h) + endpoint `GET /signals` en `api/main.py` que NACE CERRADO con
+`get_active_tenant` (Clerk + suscripción activa). Verificación dev SIN código de bypass:
+se usa `AUTH_VERIFIER=static` + `AUTH_DEV_SECRET` (token de test) — en prod `AUTH_VERIFIER=clerk`
+y esos tokens no validan. Probado vivo: sin token→401; 2 usuarios distintos→respuesta
+byte-idéntica (impersonal). 406 tests verdes (+ test_client_feed). Decisión Opción C: el
+único insumo aprendido de la señal era `symbol_score` (de UNA cuenta) → fuera del cliente,
+queda solo en el auto-trader interno. B (tabla global) es upgrade futuro si hace falta.
+Pendiente: Paso 3 (superficies cliente: conectar Alpaca → análisis+IA → calculadora →
+botón; salidas TP/SL = alerta+botón), Paso 4 (track record).
+Nota: `make_bot_cycle_fn` sigue en `workers/` (no se relocó); cubierto porque el
 guardrail también prohíbe `workers.bot_cycle` en el cliente.
 
 ## 🖥️ Frontend Next.js — REBANADA 1 SCAFFOLDEADA (2026-06-11), falta app Clerk

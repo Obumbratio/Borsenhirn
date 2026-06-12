@@ -122,6 +122,19 @@ def my_trades_count(tenant_id: str = Depends(get_compliant_tenant)):
     return {"tenant_id": tenant_id, "trades": n}
 
 
+@app.get("/signals")
+def signals(tenant_id: str = Depends(get_active_tenant)):
+    """
+    Señal/análisis IMPERSONAL (igual para TODOS los usuarios). Nace CERRADO:
+    requiere auth (Clerk) + suscripción activa (`get_active_tenant`). El contenido
+    NO depende del tenant — es el cerebro compartido (modelo global + score neutral,
+    Opción C). El `tenant_id` se usa solo para gatear el acceso, no para personalizar.
+    Ver docs/RESECUENCIACION_PLAN.md (Paso 2).
+    """
+    from borsenhirn.signals.client_feed import get_client_signals
+    return get_client_signals()
+
+
 @app.post("/billing/checkout")
 def billing_checkout(
     tenant_id: str = Depends(get_current_tenant),
