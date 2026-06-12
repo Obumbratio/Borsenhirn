@@ -33,6 +33,21 @@ Plan completo (por qué migrar + opciones L/C + secuencia): [DESPLIEGUE_PROD_PLA
 (Nota menor: ese `docker-compose.yml` tiene la password `uriel` hardcodeada y commiteada
 — local/bajo riesgo, pero no reusarla si algún día prod sale de tu máquina.)
 
+## 🧠 Re-secuenciación "un cerebro, dos caras" — Paso 1 HECHO (2026-06-12)
+Pivot de producto: el auto-trader NO se mata, se SEPARA del producto de cliente (ver
+[PRODUCTO_PLAN.md](PRODUCTO_PLAN.md) + [RESECUENCIACION_PLAN.md](RESECUENCIACION_PLAN.md)).
+**Paso 1 (desacople behavior-preserving):** `engine.py::run_cycle` se partió en:
+- `borsenhirn/signals/SignalEngine.analyze()` (cerebro compartido, read-only: régimen +
+  contexto + scanner; cero `submit_order`, cero outcomes).
+- `engine.py::AutoExecutor.execute()` (cara interna auto-trade: sells/TP/SL/buys/plan +
+  bookkeeping, VERBATIM de hoy; las salidas y `update_highest_price` quedan acá por orden).
+- `BotEngine` = orquestador (lifecycle → analyze → execute).
+Verificado: **404 tests verdes** + smoke real paper (vie 15:30 ET) corrió un ciclo
+completo por el split, regime BULL, sin error. **CHECKPOINT: parar antes del Paso 1.5.**
+Pendiente: Paso 1.5 (mover AutoExecutor a `internal/autotrader/` + guardrail de import),
+Paso 2 (cerebro global), Paso 3 (superficies cliente: conectar Alpaca → análisis+IA →
+calculadora → botón; salidas TP/SL = alerta+botón), Paso 4 (track record).
+
 ## 🖥️ Frontend Next.js — REBANADA 1 SCAFFOLDEADA (2026-06-11), falta app Clerk
 Construir en rebanadas verticales. **Rebanada 1 (HECHA a nivel código):** `frontend/`
 = Next.js 14 (App Router) + TS + Tailwind + `@clerk/nextjs` **v6** (v7 exige Next 15;
