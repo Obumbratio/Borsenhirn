@@ -64,7 +64,14 @@ queda solo en el auto-trader interno. B (tabla global) es upgrade futuro si hace
   (B2, scoped por tenant/RLS); GET devuelve key enmascarada (sin secreto). Nace cerrado
   (`get_current_tenant`). Smoke vivo OK (sin token→401, inválidas→400, válidas→connected+equity,
   delete→desconectado). Pendiente: form frontend (post-Clerk).
-- 3b: análisis+IA (enriquecer /signals con tesis/qué invalida). 3c: calculadora (lógica pura).
+- **3b HECHO (2026-06-12):** tarjeta de análisis honesta+impersonal. `borsenhirn/signals/cards.py::build_card`
+  arma tesis + niveles + qué invalida + `factores` (con PROCEDENCIA de cada dato) a partir de los
+  campos REALES de la señal (rsi/ma_trend/ml_prob/confidence/reason de strategy + régimen + stop).
+  Determinista (no LLM → no AI-washing); `client_feed` ahora devuelve tarjetas en `/signals`.
+  Verificado: guardrail verde, tarjeta real de ejemplo (AAPL, cada factor con fuente), 2 usuarios→
+  byte-idéntico. 410 tests (+ test_cards). Decisión: NO usar `m1_research` (LLM) para inventar prosa;
+  si se quiere narrador LLM, sería capa aparte CONSTREÑIDA a estos factores (riesgo a evaluar).
+- 3c: calculadora (lógica pura).
 - 3d: `POST /me/orders` (ejecución MANUAL, una orden, cuenta del user) + salidas TP/SL =
   alerta+botón. **Mostrar DISEÑO del endpoint ANTES de construir** (superficie más delicada).
 Paso 4: track record.

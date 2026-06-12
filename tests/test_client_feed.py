@@ -14,7 +14,10 @@ from borsenhirn.signals import client_feed
 class _FakeSignals:
     regime = "BULL"
     market_ctx: dict = {}
-    scan = {"buys": [{"symbol": "AAPL", "price": 190.0, "signal": {"reason": "tesis x"}}],
+    scan = {"buys": [{"symbol": "AAPL", "price": 190.0, "signal": {
+                "action": "buy", "reason": "RSI bajo + cruce alcista",
+                "rsi": 28.0, "ma_trend": "up", "ml_prob": 0.72,
+                "confidence": 0.65, "stop_loss": 182.0}}],
             "sells": []}
 
 
@@ -38,7 +41,10 @@ def test_feed_is_impersonal_and_cached(monkeypatch):
     assert a is b                                  # misma referencia (caché)
     assert a["impersonal"] is True
     assert a["regime"] == "BULL"
-    assert a["signals"] == [{"symbol": "AAPL", "price": 190.0, "reason": "tesis x"}]
+    # `signals` ahora son tarjetas enriquecidas (Paso 3b)
+    card = a["signals"][0]
+    assert card["symbol"] == "AAPL"
+    assert "tesis" in card and "factores" in card and "levels" in card
 
     # analyze se llamó IMPERSONAL: sin memoria, sin cuenta, sin plan
     assert len(fake.calls) == 1                    # la 2da fue caché, no recomputo

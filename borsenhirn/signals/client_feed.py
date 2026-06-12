@@ -59,20 +59,14 @@ def _compute() -> dict:
         prev_regime=None,
         alert=lambda *a, **k: None,   # la señal del cliente no alerta a nadie
     )
-    buys = [
-        {
-            "symbol": e.get("symbol"),
-            "price": e.get("price"),
-            "reason": (e.get("signal") or {}).get("reason"),
-        }
-        for e in signals.scan.get("buys", [])
-    ]
+    from borsenhirn.signals.cards import build_card
+    cards = [build_card(e, signals.regime) for e in signals.scan.get("buys", [])]
     return {
         "regime": signals.regime,
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "impersonal": True,
         "ttl_sec": _TTL_SEC,
-        "signals": buys,
+        "signals": cards,
     }
 
 
