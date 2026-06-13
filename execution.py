@@ -48,6 +48,35 @@ class Executor:
         except Exception as e:
             logger.error(f"submit_order: {e}"); return None
 
+    # ── Path de ejecución MANUAL (producto, Paso 3d) ──────────────────────────
+    # NUEVO: NO reemplaza a submit_order (que el auto-trader sigue usando igual:
+    # traga la excepción y devuelve None). place_order SURFACE el error (lanza) y
+    # acepta client_order_id para idempotencia (Alpaca deduplica por ese id).
+    def place_order(self, symbol, qty, side, *, client_order_id=None):
+        """Manda UNA orden y LANZA si Alpaca la rechaza (el caller mapea a 502).
+        Devuelve {order_id, status, client_order_id}."""
+        req = MarketOrderRequest(
+            symbol=symbol, qty=qty,
+            side=OrderSide.BUY if side.lower() == "buy" else OrderSide.SELL,
+            time_in_force=TimeInForce.DAY,
+            client_order_id=client_order_id,
+        )
+        order = self.client.submit_order(req)
+        logger.info(f"[MANUAL] Orden: {side.upper()} {qty} {symbol} | ID={order.id}")
+        return {"order_id": str(order.id),
+                "status": str(getattr(order, "status", "")),
+                "client_order_id": getattr(order, "client_order_id", None)}
+
+    def get_order_by_client_order_id(self, client_order_id):
+        """Devuelve la orden por client_order_id (idempotencia), o None si no existe."""
+        try:
+            o = self.client.get_order_by_client_id(client_order_id)
+            return {"order_id": str(o.id),
+                    "status": str(getattr(o, "status", "")),
+                    "client_order_id": getattr(o, "client_order_id", None)}
+        except Exception:
+            return None
+
     def close_position(self, symbol):
         try:
             self.client.close_position(symbol)

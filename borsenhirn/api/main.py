@@ -128,6 +128,116 @@ def disconnect_broker(tenant_id: str = Depends(get_current_tenant)):
     return {"connected": False, "deleted": bool(ok)}
 
 
+# ── Ejecución MANUAL (el usuario aprieta cada orden) — Paso 3d ───────────────
+class OrderRequest(BaseModel):
+    symbol: str
+    side: str                 # "buy" | "sell"
+    qty: int
+    mode: str = "paper"       # paper-first; "live" requiere opt-in explícito (no habilitado)
+    idempotency_key: str      # uuid del front, uno por click → dedup en Alpaca (client_order_id)
+
+
+def _user_executor(tenant_id: str):
+    """Executor con las creds del PROPIO user (vault B2), paper. 409 si no conectó."""
+    creds = None
+    with bdb.get_conn(role="app") as conn:
+        try:
+            creds = _credential_store(tenant_id, conn).get(tenant_id, "alpaca")
+        except Exception as exc:
+            logger.warning("user_executor: vault get falló: %s", exc)
+    if not creds:
+        raise HTTPException(status_code=409,
+                            detail="conectá tu cuenta de Alpaca primero (POST /me/broker)")
+    from execution import Executor
+    return Executor(api_key=creds.api_key, secret_key=creds.api_secret, paper=True)
+
+
+@app.post("/me/orders")
+def place_order(body: OrderRequest, tenant_id: str = Depends(get_compliant_tenant)):
+    """
+    Ejecuta UNA orden — solo cuando el usuario la dispara (el botón). Sin loops,
+    sin auto-submit. Usa las creds del PROPIO user (BYO), paper-first. Idempotente
+    por `idempotency_key` (= client_order_id de Alpaca). Gating fuerte
+    (`get_compliant_tenant`: suscripción activa + legal aceptado).
+    """
+    import config
+    symbol = (body.symbol or "").strip().upper()
+    side = (body.side or "").strip().lower()
+
+    # ── Validaciones pre-envío ──
+    if not symbol or not symbol.isalpha() or len(symbol) > 6:
+        raise HTTPException(status_code=400, detail="símbolo inválido")
+    if side not in ("buy", "sell"):
+        raise HTTPException(status_code=400, detail="side debe ser 'buy' o 'sell'")
+    if not isinstance(body.qty, int) or body.qty <= 0:
+        raise HTTPException(status_code=400, detail="qty debe ser un entero > 0")
+    max_qty = int(getattr(config, "SANITY_MAX_QTY_PER_ORDER", 10000))
+    if body.qty > max_qty:
+        raise HTTPException(status_code=400,
+                            detail=f"qty {body.qty} supera el tope de sanidad ({max_qty})")
+    if not body.idempotency_key or len(body.idempotency_key) > 128:
+        raise HTTPException(status_code=400, detail="idempotency_key requerida (uuid)")
+    # ── Paper-first: live exige opt-in explícito (no habilitado en 3d) ──
+    if body.mode != "paper":
+        raise HTTPException(status_code=403,
+                            detail="trading real no habilitado (paper-first); live requiere opt-in explícito")
+
+    ex = _user_executor(tenant_id)
+    coid = body.idempotency_key
+    meta = {"symbol": symbol, "side": side, "qty": body.qty, "mode": "paper"}
+
+    # ── Idempotencia: ¿ya hay una orden con ese client_order_id? ──
+    existing = ex.get_order_by_client_order_id(coid)
+    if existing:
+        return {**existing, **meta, "idempotent": True}
+
+    # ── Mandar UNA orden; si Alpaca rechaza → 502 (sin crash) ──
+    try:
+        res = ex.place_order(symbol, body.qty, side, client_order_id=coid)
+    except Exception as exc:
+        # ¿rechazo por client_order_id duplicado (doble click en carrera)? → devolver la existente
+        dup = ex.get_order_by_client_order_id(coid)
+        if dup:
+            return {**dup, **meta, "idempotent": True}
+        raise HTTPException(status_code=502, detail=f"Alpaca rechazó la orden: {exc}")
+
+    # ── Auditar (B5) ──
+    try:
+        from borsenhirn.audit import get_audit_logger
+        get_audit_logger().record(tenant_id, "order.submit", resource=symbol,
+                                  metadata={**meta, "order_id": res.get("order_id")})
+    except Exception:
+        pass
+    return {**res, **meta, "idempotent": False}
+
+
+@app.get("/me/positions")
+def my_positions(tenant_id: str = Depends(get_active_tenant)):
+    """
+    Posiciones del usuario + alertas TP/SL (ALERTA + botón). READ-ONLY: NO ejecuta.
+    Cada alerta describe el escenario y pre-llena un `sugerido`; ejecutar = el user
+    aprieta POST /me/orders. Nunca dice "vendé" ni auto-ejecuta.
+    """
+    from borsenhirn.signals.exits import position_alerts
+    ex = _user_executor(tenant_id)
+    out = []
+    for p in ex.get_positions():
+        qty = p.get("qty") or 0.0
+        avg = p.get("avg_entry_price") or 0.0
+        current = (p.get("market_value", 0.0) / qty) if qty else 0.0
+        pnl_pct = ((current - avg) / avg * 100) if avg else 0.0
+        out.append({
+            "symbol": p.get("symbol"),
+            "qty": qty,
+            "avg_entry": round(avg, 2),
+            "current": round(current, 2),
+            "pnl_pct": round(pnl_pct, 2),
+            "alertas": position_alerts(symbol=p.get("symbol"), qty=qty,
+                                       avg_entry=avg, current=current),
+        })
+    return {"positions": out}
+
+
 class LegalAccept(BaseModel):
     document: str   # 'terms' | 'privacy'
     version: str

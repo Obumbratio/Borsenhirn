@@ -77,9 +77,17 @@ queda solo en el auto-trader interno. B (tabla global) es upgrade futuro si hace
   opinión. Tests vitest (`npm test`): **8 verdes** incl. bordes — stop>=entrada (riesgo/acción
   ≤0, sin div por cero ni negativos), capital insuficiente→0 acciones (no fracciones),
   redondeo (acciones enteras, dinero 2 decimales). Frontend UI: pasada post-Clerk.
-- 3d: `POST /me/orders` (ejecución MANUAL, una orden, cuenta del user) + salidas TP/SL =
-  alerta+botón. **Mostrar DISEÑO del endpoint ANTES de construir** (superficie más delicada).
-Paso 4: track record.
+- **3d HECHO (2026-06-13):** ejecución MANUAL. `POST /me/orders` (gating `get_compliant_tenant`:
+  activa+legal): UNA orden por request, creds del PROPIO user (vault), paper-first (live→403),
+  sanity cap al qty (`SANITY_MAX_QTY_PER_ORDER`), idempotencia vía `client_order_id` de Alpaca
+  (doble click→misma orden, sin tabla), rechazo Alpaca→502 sin crash, audita (B5).
+  `GET /me/positions`: alertas TP/SL como ALERTA+botón (read-only, nunca "vendé"/auto).
+  `execution.py`: `submit_order` INTACTO (diff aditivo, 0 deletions) + nuevos `place_order`/
+  `get_order_by_client_order_id`; auto-trader sin afectar (test_workers/test_bot_cycle verdes).
+  Math de salidas: `borsenhirn/signals/exits.py` (pura). Smoke vivo: 401/400/400(sanity)/403/
+  502/orden ok/doble-click→misma orden/alertas. 414 tests (+test_exits). Frontend UI: post-Clerk.
+**Paso 3 backend COMPLETO (3a–3d). Falta: pasada FRONTEND post-Clerk (cablear las 4 superficies).**
+Paso 4: track record (alimentado por el auto-trader interno en paper).
 Nota: `make_bot_cycle_fn` sigue en `workers/` (no se relocó); cubierto porque el
 guardrail también prohíbe `workers.bot_cycle` en el cliente.
 
