@@ -3,7 +3,7 @@
 > Misión y decisiones de fondo: ver [PLAN.md](PLAN.md). Log por bloque: [B1_SESSION_LOG.md](B1_SESSION_LOG.md).
 
 ## Última actualización
-2026-06-11
+2026-06-14
 
 ## ✅ PROD LOCAL-FIRST DESPLEGADA (2026-06-11) — DB `borsenhirn` viva y limpia
 **Decisión:** local-first (en la máquina de Uriel, no nube — no rompe el principio, $0).
@@ -86,10 +86,39 @@ queda solo en el auto-trader interno. B (tabla global) es upgrade futuro si hace
   `get_order_by_client_order_id`; auto-trader sin afectar (test_workers/test_bot_cycle verdes).
   Math de salidas: `borsenhirn/signals/exits.py` (pura). Smoke vivo: 401/400/400(sanity)/403/
   502/orden ok/doble-click→misma orden/alertas. 414 tests (+test_exits). Frontend UI: post-Clerk.
-**Paso 3 backend COMPLETO (3a–3d). Falta: pasada FRONTEND post-Clerk (cablear las 4 superficies).**
-Paso 4: track record (alimentado por el auto-trader interno en paper).
+**Paso 3 backend COMPLETO (3a–3d), 414 tests verdes.** Contratos cliente listos:
+`/me/broker` (conectar Alpaca), `/signals` (tarjetas), `/me/orders` (ejecución manual),
+`/me/positions` (alertas TP/SL). Calculadora en TS puro (frontend).
 Nota: `make_bot_cycle_fn` sigue en `workers/` (no se relocó); cubierto porque el
 guardrail también prohíbe `workers.bot_cycle` en el cliente.
+
+## 👉 PASO ACTUAL (2026-06-14): cablear Clerk para desbloquear el frontend
+Único bloqueador del frontend. Checklist (Uriel hace A y B; Claude hace C):
+- **A. Crear app Clerk** (dashboard.clerk.com, free): copiar **publishable key** (`pk_test_…`,
+  pública) + **secret key** (`sk_test_…`, privada) + el **Frontend API URL** (= issuer,
+  `https://<slug>.clerk.accounts.dev`). JWKS = issuer + `/.well-known/jwks.json`.
+- **B. Pegar las vars (a mano, la secret NO va al chat):**
+  - `frontend/.env.local` (NO existe aún — crear; gitignored):
+    `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=` · `CLERK_SECRET_KEY=` · `NEXT_PUBLIC_API_URL=http://localhost:8000`
+  - Backend `.env` (existe; AGREGAR 3 líneas, no clobbear): `AUTH_VERIFIER=clerk` ·
+    `CLERK_ISSUER=https://<slug>.clerk.accounts.dev` · `CLERK_JWKS_URL=<issuer>/.well-known/jwks.json`
+  - Nombres exactos que lee el código (auth/verifier.py): `AUTH_VERIFIER`, `CLERK_ISSUER`,
+    `CLERK_JWKS_URL` (+ `CLERK_AUDIENCE` opcional). Frontend: `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`.
+  - OJO: con `AUTH_VERIFIER=clerk`, el backend deja de aceptar los tokens `static` de dev.
+- **C. Verificar (Claude, tras confirmar B):** `/me` sin token pasa de **500 → 401** (prueba
+  que el verifier se construye). El **200 con token real** lo prueba Uriel en el browser:
+  `cd frontend && npm run dev` → :3000 → login Clerk → `/dashboard` llama `GET /me`.
+- **Estado:** la creación de `frontend/.env.local` quedó pendiente (Uriel la maneja). Apenas
+  estén las vars, correr la verificación C.
+
+## ⏭️ LO QUE FALTA PARA COMPLETAR (orden de impacto)
+1. **Cablear Clerk** (paso actual ↑) — desbloquea todo el frontend.
+2. **Pasada FRONTEND** (post-Clerk): cablear las 4 superficies en Next.js (form conectar
+   Alpaca → tarjetas de análisis → calculadora UI → botón comprar + panel posiciones/alertas).
+   Backend/contratos y la lógica de la calculadora ya están.
+3. **Paso 4 — track record público** (alimentado por el auto-trader interno en paper). Diferido.
+4. **Operativos previos** (no bloquean el producto local): `BORSENHIRN_MASTER_KEY` real,
+   keys Stripe live, cron backups, apuntar timer de anomalías a prod.
 
 ## 🖥️ Frontend Next.js — REBANADA 1 SCAFFOLDEADA (2026-06-11), falta app Clerk
 Construir en rebanadas verticales. **Rebanada 1 (HECHA a nivel código):** `frontend/`
@@ -110,11 +139,8 @@ levantamos API (:8000) + `npm run dev` (:3000) y verificamos login → `/me`.
 `/health`, `/`, `/legal/current` responden OK. `/me`, `/me/legal*`, `/billing/*`,
 `/me/audit`, `/me/export` requieren JWT Bearer (Clerk).
 
-**Prerequisitos (del usuario, NO los hace Claude) — bloquean construir/verificar:**
-1. **Node.js no instalado** (ni nvm/apt). Next.js lo necesita. Instalar vía nvm (sin sudo):
-   `curl ... nvm install.sh | bash` → `nvm install --lts`.
-2. **App de Clerk (tier dev, gratis):** da publishable key (frontend) + issuer/JWKS (backend).
-3. **Configurar backend:** `AUTH_VERIFIER=clerk` + `CLERK_ISSUER` + `CLERK_JWKS_URL` en el env.
+**Prerequisitos:** Node.js ✅ instalado (v24.16.0 vía nvm). Falta solo la **app de Clerk
++ las vars** — ver "👉 PASO ACTUAL" arriba (es la fuente de verdad del estado de Clerk).
    HALLAZGO: hoy `/me` sin token da **HTTP 500** (no 401) — NO es bug: `build_verifier_from_env`
    tira `ValueError` porque no hay `AUTH_VERIFIER`/`AUTH_DEV_SECRET`. Con `AUTH_VERIFIER=clerk`
    se resuelve (sin token → 401 limpio; con token → OK). Stripe puede esperar (test mode).
