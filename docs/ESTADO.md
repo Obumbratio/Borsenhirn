@@ -108,8 +108,13 @@ guardrail también prohíbe `workers.bot_cycle` en el cliente.
 - **C. Verificar (Claude, tras confirmar B):** `/me` sin token pasa de **500 → 401** (prueba
   que el verifier se construye). El **200 con token real** lo prueba Uriel en el browser:
   `cd frontend && npm run dev` → :3000 → login Clerk → `/dashboard` llama `GET /me`.
-- **Estado:** la creación de `frontend/.env.local` quedó pendiente (Uriel la maneja). Apenas
-  estén las vars, correr la verificación C.
+- **Estado (2026-06-16): CLERK CABLEADO Y VERIFICADO (paso C ✅).** `frontend/.env.local`
+  creado por Uriel con las 3 vars OK (pk_test/sk_test/API URL). Faltaban las 3 líneas del
+  `.env` del backend → agregadas (derivadas de la publishable key: issuer
+  `https://fancy-drum-15.clerk.accounts.dev`). Verificado vivo: JWKS HTTP 200,
+  `build_verifier_from_env()`→`clerk`, **`/me` sin token = 401** (antes 500), token basura=401.
+  **Falta solo:** el 200 con token real en el browser (Uriel: API:8000 + `npm run dev` :3000 →
+  login → /dashboard llama GET /me). Con eso, Clerk queda 100% y se desbloquea la pasada frontend.
 
 ## ⏭️ LO QUE FALTA PARA COMPLETAR (orden de impacto)
 1. **Cablear Clerk** (paso actual ↑) — desbloquea todo el frontend.
