@@ -1,5 +1,6 @@
 import type { AnalysisCard } from "@/lib/signals";
 import { usd } from "@/lib/signals";
+import { PositionCalculator } from "@/components/PositionCalculator";
 
 /**
  * Tarjeta de análisis (presentacional, server-safe). Muestra, por señal:
@@ -58,6 +59,9 @@ export function SignalCardView({ card }: { card: AnalysisCard }) {
           </ul>
         </div>
       )}
+
+      {/* Calculadora de posición (el usuario la opera con sus números) */}
+      <PositionCalculator entry={levels.entry} stop={levels.stop} target={levels.target} />
 
       {/* Disclaimer por tarjeta */}
       <p className="mt-4 border-t border-neutral-800 pt-3 text-[11px] leading-relaxed text-neutral-500">
