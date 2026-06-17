@@ -3,7 +3,7 @@
 > Misión y decisiones de fondo: ver [PLAN.md](PLAN.md). Log por bloque: [B1_SESSION_LOG.md](B1_SESSION_LOG.md).
 
 ## Última actualización
-2026-06-14
+2026-06-16
 
 ## ✅ PROD LOCAL-FIRST DESPLEGADA (2026-06-11) — DB `borsenhirn` viva y limpia
 **Decisión:** local-first (en la máquina de Uriel, no nube — no rompe el principio, $0).
@@ -92,8 +92,31 @@ queda solo en el auto-trader interno. B (tabla global) es upgrade futuro si hace
 Nota: `make_bot_cycle_fn` sigue en `workers/` (no se relocó); cubierto porque el
 guardrail también prohíbe `workers.bot_cycle` en el cliente.
 
-## 👉 PASO ACTUAL (2026-06-14): cablear Clerk para desbloquear el frontend
-Único bloqueador del frontend. Checklist (Uriel hace A y B; Claude hace C):
+## 👉 PASO ACTUAL (2026-06-16): pasada FRONTEND, de a UNA superficie
+**Clerk CERRADO al 100%** (login real punta a punta verificado: dashboard cargó,
+`GET /me`→200 con tenant_id `314e32f1-53d0-4efa-8579-df84f6a552a4` + Clerk userId).
+Desbloqueó el frontend. Vamos superficie por superficie, **Uriel decide el orden y
+da el OK de arranque de cada una** (no adelantarse — ver memoria de flujo).
+
+**Pasada FE #1 — Tarjetas de análisis ✅ (commit f3e9d6e).** `/dashboard` consume
+`GET /signals`: símbolo+precio, tesis, niveles (entrada/stop/objetivo), qué invalida,
+régimen, factores con PROCEDENCIA, disclaimer visible. Estados vacío/error manejados.
+Archivos: `frontend/src/lib/signals.ts`, `components/SignalCard.tsx`, `app/dashboard/page.tsx`.
+
+**Pasada FE #2 — Calculadora de posición ✅ (commit a81fd58).** `components/PositionCalculator.tsx`
+(client island, embebido colapsable en cada tarjeta): usuario mete capital + %riesgo,
+toma niveles del análisis, recalcula en vivo (useMemo) vía `calcPosition` (lib pura, 8 tests):
+acciones, costo+%capital, pérdida al stop, ganancia al objetivo, R/B. Bordes OK (stop≥entrada,
+capital insuficiente). Disclaimer "herramienta, no recomendación". Verificado por Uriel (ej. UNH).
+- **TODO futuro (NO ahora, anotado a pedido de Uriel):** cuando el %capital de UNA posición
+  es alto (~40%+), mostrar un aviso informativo SUAVE (solo dato, sin aconsejar nada).
+
+**Próxima — Pasada FE #3: conectar Alpaca (`/me/broker`).** DECIDIDA pero **NO arrancada**
+(esperar OK explícito de Uriel). Después: ejecución manual (`/me/orders`) + posiciones/alertas
+(`/me/positions`). Calculadora y tarjetas ya hechas.
+
+---
+### (histórico) Clerk — cómo se cableó. Checklist (Uriel hizo A y B; Claude hizo C):
 - **A. Crear app Clerk** (dashboard.clerk.com, free): copiar **publishable key** (`pk_test_…`,
   pública) + **secret key** (`sk_test_…`, privada) + el **Frontend API URL** (= issuer,
   `https://<slug>.clerk.accounts.dev`). JWKS = issuer + `/.well-known/jwks.json`.
