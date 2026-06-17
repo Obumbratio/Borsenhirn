@@ -10,6 +10,7 @@ Endpoints autenticados (B3, Clerk JWT -> tenant): /me, /me/trades/count.
 import logging
 from datetime import datetime, timezone
 from fastapi import FastAPI, Depends, Request, HTTPException, Header
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import borsenhirn.db as bdb
 import os
@@ -28,6 +29,26 @@ from borsenhirn.legal import (
 
 logger = logging.getLogger(__name__)
 app = FastAPI(title="Börsenhirn API", version="1.0.0")
+
+# CORS: el frontend (Next, otro origen/puerto) hace fetch client-side con header
+# Authorization → el browser manda un preflight OPTIONS. Sin esto, OPTIONS da 405
+# y el browser bloquea la respuesta ("Failed to fetch"). Orígenes configurables por
+# env (CORS_ALLOW_ORIGINS, coma-separado); default = los del dev local.
+_cors_origins = [
+    o.strip()
+    for o in os.getenv(
+        "CORS_ALLOW_ORIGINS",
+        "http://localhost:3000,http://127.0.0.1:3000",
+    ).split(",")
+    if o.strip()
+]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 class ExternalSignal(BaseModel):
