@@ -111,9 +111,17 @@ capital insuficiente). Disclaimer "herramienta, no recomendación". Verificado p
 - **TODO futuro (NO ahora, anotado a pedido de Uriel):** cuando el %capital de UNA posición
   es alto (~40%+), mostrar un aviso informativo SUAVE (solo dato, sin aconsejar nada).
 
-**Próxima — Pasada FE #3: conectar Alpaca (`/me/broker`).** DECIDIDA pero **NO arrancada**
-(esperar OK explícito de Uriel). Después: ejecución manual (`/me/orders`) + posiciones/alertas
-(`/me/positions`). Calculadora y tarjetas ya hechas.
+**Pasada FE #3 — Conectar Alpaca (`/me/broker`) ✅.** `app/dashboard/broker/page.tsx`
+(client, wizard 3 pasos + link al panel paper de Alpaca) + `lib/broker.ts` (GET/POST/DELETE
+tipados). Secret en input type=password, nunca se loguea ni se re-pinta; form se limpia al
+guardar. Solo PAPER. GET muestra estado (conectado/masked+equity / wizard). DELETE con
+confirmación. Link en el header (`layout.tsx`). Verificado: round-trip del vault OK.
+- **DEV ENABLER:** `BORSENHIRN_MASTER_KEY` (Fernet) agregada al `.env` LOCAL para que el vault
+  cifre (el POST tiraba 500 sin ella; GET ya soft-falla). **Solo dev** — prod necesita key real
+  vía secrets manager (sigue pendiente operativo). No había credenciales previas que se huérfanen.
+
+**Próxima — Pasada FE #4: ejecución manual (`/me/orders`) + posiciones/alertas (`/me/positions`).**
+DECIDIDA pero **NO arrancada** (esperar OK explícito de Uriel). Calculadora, tarjetas y broker ya hechos.
 
 ---
 ### (histórico) Clerk — cómo se cableó. Checklist (Uriel hizo A y B; Claude hizo C):

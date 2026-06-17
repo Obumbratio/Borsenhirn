@@ -45,6 +45,9 @@ export default function RootLayout({
                 <Link href="/dashboard" className="text-sm hover:underline">
                   Dashboard
                 </Link>
+                <Link href="/dashboard/broker" className="text-sm hover:underline">
+                  Conectar Alpaca
+                </Link>
                 <UserButton />
               </SignedIn>
             </nav>
