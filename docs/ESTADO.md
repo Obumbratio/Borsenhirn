@@ -111,14 +111,22 @@ capital insuficiente). Disclaimer "herramienta, no recomendación". Verificado p
 - **TODO futuro (NO ahora, anotado a pedido de Uriel):** cuando el %capital de UNA posición
   es alto (~40%+), mostrar un aviso informativo SUAVE (solo dato, sin aconsejar nada).
 
-**Pasada FE #3 — Conectar Alpaca (`/me/broker`) ✅.** `app/dashboard/broker/page.tsx`
-(client, wizard 3 pasos + link al panel paper de Alpaca) + `lib/broker.ts` (GET/POST/DELETE
-tipados). Secret en input type=password, nunca se loguea ni se re-pinta; form se limpia al
-guardar. Solo PAPER. GET muestra estado (conectado/masked+equity / wizard). DELETE con
-confirmación. Link en el header (`layout.tsx`). Verificado: round-trip del vault OK.
-- **DEV ENABLER:** `BORSENHIRN_MASTER_KEY` (Fernet) agregada al `.env` LOCAL para que el vault
-  cifre (el POST tiraba 500 sin ella; GET ya soft-falla). **Solo dev** — prod necesita key real
-  vía secrets manager (sigue pendiente operativo). No había credenciales previas que se huérfanen.
+**Pasada FE #3 — Conectar Alpaca (`/me/broker`) ✅ CERRADA Y VERIFICADA CON KEYS REALES
+(2026-06-17).** Uriel conectó su cuenta Alpaca paper de verdad: la pantalla muestra
+"Alpaca conectado (paper)" con la key enmascarada. `app/dashboard/broker/page.tsx` (client,
+wizard 3 pasos + link al panel paper) + `lib/broker.ts` (GET/POST/DELETE tipados). Secret en
+input type=password, nunca se loguea ni se re-pinta; form se limpia al guardar. Solo PAPER.
+DELETE con confirmación. Link en el header (`layout.tsx`).
+- **Seguridad verificada (2026-06-17):** secret cifrado en `user_credentials.api_secret_ciphertext`
+  (token Fernet, 140 bytes, `enc_version=1`, NO texto plano); uvicorn loguea solo método+path+status
+  (sin body); `.env`/`.env.local`/`.env.dev`/`.env.prod` gitignored y NO trackeados.
+- **DEV ENABLER:** `BORSENHIRN_MASTER_KEY` (Fernet) en el `.env` LOCAL para que el vault cifre
+  (el POST tiraba 500 sin ella). **Solo dev** — prod usa secrets manager (pendiente operativo).
+- **Bugs de arranque resueltos (ver [ERRORES.md](ERRORES.md) 2026-06-17):** la API "no levantaba"
+  desde el browser por (1) bind `127.0.0.1` en vez de `0.0.0.0` (WSL no reenvía loopback a Windows)
+  y (2) falta de CORS (preflight OPTIONS→405). Fixes: `--host 0.0.0.0` + CORSMiddleware en
+  `api/main.py`. **Arranque de TODO el stack de un tirón:** `bash scripts/run_dev_stack.sh`
+  (Postgres + Redis-si-está + API:8000 host 0.0.0.0 + Front:3000, con healthchecks).
 
 **Próxima — Pasada FE #4: ejecución manual (`/me/orders`) + posiciones/alertas (`/me/positions`).**
 DECIDIDA pero **NO arrancada** (esperar OK explícito de Uriel). Calculadora, tarjetas y broker ya hechos.
