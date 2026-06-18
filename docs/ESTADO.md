@@ -128,8 +128,25 @@ DELETE con confirmación. Link en el header (`layout.tsx`).
   `api/main.py`. **Arranque de TODO el stack de un tirón:** `bash scripts/run_dev_stack.sh`
   (Postgres + Redis-si-está + API:8000 host 0.0.0.0 + Front:3000, con healthchecks).
 
-**Próxima — Pasada FE #4: ejecución manual (`/me/orders`) + posiciones/alertas (`/me/positions`).**
-DECIDIDA pero **NO arrancada** (esperar OK explícito de Uriel). Calculadora, tarjetas y broker ya hechos.
+**Pasada FE #4 — Ejecución (`/me/orders`) + posiciones/alertas (`/me/positions`) ✅.**
+- `components/OrderConfirmDialog.tsx`: ÚNICO camino a ejecutar. Confirmación explícita
+  (verb + qty + symbol + ~precio, badge PAPER) → POST. Idempotencia: 1 `idempotency_key`
+  (crypto.randomUUID) por apertura, reusado en reintentos → doble-click no duplica. Maneja
+  200/idempotent, 409 (link broker), 502 (reintentar), 402, 400. **451 → paso legal inline**
+  (D-1a): acepta Términos+Privacidad (`POST /me/legal/accept`, queda actor+versión+fecha) y
+  reintenta con la MISMA key. Live nunca se ofrece (siempre mode:paper).
+- Botón "Comprar (paper)" DENTRO de la calculadora (D-2): qty = acciones ya calculadas.
+- `components/PositionsPanel.tsx` + ruta `/dashboard/positions` (D-3): read-only; alertas TP/SL
+  como ALERTA + botón "Revisar orden sugerida" (NUNCA "vendé") que pre-llena el mismo diálogo.
+- `lib/orders.ts` (placeOrder/getPositions/getLegalCurrent/acceptLegal, errores discriminados con status).
+  Link "Posiciones" en el header.
+- **Verificado (2026-06-17):** guardrail línea-roja verde; tsc + 8 tests vitest; estados del
+  diálogo probados a nivel HTTP con TestClient (200/idempotent/400×3/403/451/409/502) + panel con
+  alerta de ejemplo (objetivo_alcanzado → sugerido sell). Falta solo el click visual en el browser (Uriel).
+- **Nota:** el tenant de Uriel aún NO tiene legal aceptado → al primer "Comprar" verá el paso 451→aceptar.
+
+**PASADA FRONTEND COMPLETA (4 superficies):** tarjetas · calculadora · conectar Alpaca · ejecución+posiciones.
+Pendiente: pulido visual (diferido a pedido de Uriel) + el aviso suave de %capital alto (TODO).
 
 ---
 ### (histórico) Clerk — cómo se cableó. Checklist (Uriel hizo A y B; Claude hizo C):

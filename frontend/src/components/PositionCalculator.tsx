@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { calcPosition, type CalcResult } from "@/lib/position-calculator";
 import { usd } from "@/lib/signals";
+import { OrderConfirmDialog, type PendingOrder } from "@/components/OrderConfirmDialog";
 
 /**
  * Calculadora de tamaño de posición (Paso 3c — UI).
@@ -15,10 +16,12 @@ import { usd } from "@/lib/signals";
  * NO ejecuta nada — es una herramienta de cuentas, no un consejo.
  */
 export function PositionCalculator({
+  symbol,
   entry,
   stop,
   target,
 }: {
+  symbol: string;
   entry: number | null;
   stop: number | null;
   target: number | null;
@@ -26,6 +29,7 @@ export function PositionCalculator({
   const [open, setOpen] = useState(false);
   const [capital, setCapital] = useState("");
   const [riskPct, setRiskPct] = useState("1");
+  const [buy, setBuy] = useState<PendingOrder | null>(null);
 
   // Recalcula SOLO cuando cambia un input (capital / riesgo / niveles).
   const result = useMemo<CalcResult | null>(() => {
@@ -98,7 +102,19 @@ export function PositionCalculator({
                     Ingresá tu capital para ver el cálculo.
                   </p>
                 ) : result.valid ? (
-                  <ResultView r={result} target={target} />
+                  <>
+                    <ResultView r={result} target={target} />
+                    {/* Comprar: sale de lo que el usuario YA calculó (qty = acciones).
+                        Abre el diálogo de confirmación; nunca ejecuta con un click. */}
+                    <button
+                      onClick={() =>
+                        setBuy({ symbol, side: "buy", qty: result.shares, estPrice: entry })
+                      }
+                      className="mt-3 w-full rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium hover:bg-emerald-500"
+                    >
+                      Comprar {result.shares} {result.shares === 1 ? "acción" : "acciones"} de {symbol} (paper)
+                    </button>
+                  </>
                 ) : (
                   <p className="rounded-md border border-amber-500/25 bg-amber-500/5 px-3 py-2 text-sm text-amber-200/90">
                     {result.note}
@@ -115,6 +131,9 @@ export function PositionCalculator({
           )}
         </div>
       )}
+
+      {/* Confirmación de compra (paso obligatorio antes de ejecutar) */}
+      <OrderConfirmDialog order={buy} onClose={() => setBuy(null)} />
     </div>
   );
 }
