@@ -3,7 +3,7 @@
 > Misión y decisiones de fondo: ver [PLAN.md](PLAN.md). Log por bloque: [B1_SESSION_LOG.md](B1_SESSION_LOG.md).
 
 ## Última actualización
-2026-06-16
+2026-06-21
 
 ## ✅ PROD LOCAL-FIRST DESPLEGADA (2026-06-11) — DB `borsenhirn` viva y limpia
 **Decisión:** local-first (en la máquina de Uriel, no nube — no rompe el principio, $0).
@@ -140,13 +140,29 @@ DELETE con confirmación. Link en el header (`layout.tsx`).
   como ALERTA + botón "Revisar orden sugerida" (NUNCA "vendé") que pre-llena el mismo diálogo.
 - `lib/orders.ts` (placeOrder/getPositions/getLegalCurrent/acceptLegal, errores discriminados con status).
   Link "Posiciones" en el header.
-- **Verificado (2026-06-17):** guardrail línea-roja verde; tsc + 8 tests vitest; estados del
-  diálogo probados a nivel HTTP con TestClient (200/idempotent/400×3/403/451/409/502) + panel con
-  alerta de ejemplo (objetivo_alcanzado → sugerido sell). Falta solo el click visual en el browser (Uriel).
+- **Verificado a nivel código (2026-06-17):** guardrail línea-roja verde; tsc + 8 tests vitest;
+  estados del diálogo probados a nivel HTTP con TestClient (200/idempotent/400×3/403/451/409/502)
+  + panel con alerta de ejemplo (objetivo_alcanzado → sugerido sell).
+- **✅ VERIFICADO EN BROWSER PUNTA A PUNTA (2026-06-21) — CIERRE DE LA PASADA #4.** Uriel probó
+  el flujo completo en el navegador con datos reales: (1) comprar con confirmación previa →
+  la orden **llegó a Alpaca paper** ("Orden enviada · ACCEPTED · paper"); (2) las alertas TP/SL
+  salieron como **"Revisar orden sugerida"** sin ejecutarse solas (NUNCA auto-vende). Las 4
+  superficies funcionando con datos reales de punta a punta.
 - **Nota:** el tenant de Uriel aún NO tiene legal aceptado → al primer "Comprar" verá el paso 451→aceptar.
 
-**PASADA FRONTEND COMPLETA (4 superficies):** tarjetas · calculadora · conectar Alpaca · ejecución+posiciones.
-Pendiente: pulido visual (diferido a pedido de Uriel) + el aviso suave de %capital alto (TODO).
+**PASADA FRONTEND COMPLETA Y VERIFICADA EN BROWSER (2026-06-21):** tarjetas · calculadora ·
+conectar Alpaca · ejecución+posiciones — las 4 superficies probadas punta a punta con datos
+reales y una orden real en Alpaca paper. Pendiente: pulido visual (diferido a pedido de Uriel)
++ el aviso suave de %capital alto (TODO) + separar la cuenta paper del auto-trader (TODO ↓).
+
+### 📌 TODO (producto, NO ahora — anotado a pedido de Uriel 2026-06-21): separar cuentas paper
+Hoy la cuenta de cliente (BYO Alpaca de Uriel) y el **auto-trader interno** comparten la **MISMA
+cuenta de Alpaca paper** → por eso en el panel de posiciones aparecen muchas posiciones que el
+usuario NO compró (las abrió el auto-trader). **Para probar está bien.** Cuando esto sea producto,
+el auto-trader interno debería correr en **su propia cuenta paper**, separada de lo que ve un
+usuario (cada tenant ve solo lo suyo). Encaja con la separación "un cerebro, dos caras" ya hecha
+(el auto-trader vive aislado en `internal/autotrader/`); falta que sus credenciales Alpaca sean
+distintas de las del cliente. **No arreglar ahora.**
 
 ---
 ### (histórico) Clerk — cómo se cableó. Checklist (Uriel hizo A y B; Claude hizo C):
