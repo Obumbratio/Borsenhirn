@@ -11,6 +11,7 @@ import {
   type PlacedOrder,
 } from "@/lib/orders";
 import { usd } from "@/lib/signals";
+import { useDemoMode } from "@/components/ui/DemoMode";
 
 export type PendingOrder = {
   symbol: string;
@@ -22,6 +23,7 @@ export type PendingOrder = {
 type Phase = "confirm" | "legal" | "result";
 type Result =
   | { kind: "ok"; order: PlacedOrder }
+  | { kind: "sim"; symbol: string; side: OrderSide; qty: number } // demo: orden simulada
   | { kind: "error"; status: number | null; message: string };
 
 /**
@@ -45,6 +47,7 @@ export function OrderConfirmDialog({
   onDone?: () => void;
 }) {
   const { getToken } = useAuth();
+  const demo = useDemoMode();
   const [phase, setPhase] = useState<Phase>("confirm");
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
@@ -76,6 +79,14 @@ export function OrderConfirmDialog({
   const estTotal = order.estPrice != null ? order.estPrice * order.qty : null;
 
   async function submit(key: string) {
+    // DEMO: no se toca la red. Orden SIMULADA — nunca llega a /me/orders ni al
+    // gate 451. Mismo flujo visual, resultado claramente etiquetado.
+    if (demo) {
+      setResult({ kind: "sim", symbol: order!.symbol, side: order!.side, qty: order!.qty });
+      setPhase("result");
+      onDone?.();
+      return;
+    }
     setBusy(true);
     const res = await placeOrder(await getToken(), {
       symbol: order!.symbol,
@@ -125,9 +136,15 @@ export function OrderConfirmDialog({
           <h2 className="text-lg font-semibold">
             {phase === "result" ? "Resultado" : phase === "legal" ? "Aceptación requerida" : "Confirmar orden"}
           </h2>
-          <span className="rounded-full bg-sky-500/15 px-2.5 py-0.5 text-xs font-medium text-sky-300 ring-1 ring-sky-500/30">
-            PAPER
-          </span>
+          {demo ? (
+            <span className="rounded-full bg-amber-500/15 px-2.5 py-0.5 text-xs font-medium text-amber-300 ring-1 ring-amber-500/30">
+              DEMO
+            </span>
+          ) : (
+            <span className="rounded-full bg-sky-500/15 px-2.5 py-0.5 text-xs font-medium text-sky-300 ring-1 ring-sky-500/30">
+              PAPER
+            </span>
+          )}
         </div>
 
         {phase === "confirm" && (
@@ -148,14 +165,24 @@ export function OrderConfirmDialog({
               .
             </p>
             <p className="mt-3 text-[11px] text-neutral-500">
-              Cuenta de práctica (paper). El precio final puede variar respecto al estimado.
+              {demo
+                ? "Modo demostración: esta orden se simulará — no se envía al broker."
+                : "Cuenta de práctica (paper). El precio final puede variar respecto al estimado."}
             </p>
             <div className="mt-5 flex justify-end gap-2">
               <button onClick={onClose} disabled={busy} className={btnGhost}>
                 Cancelar
               </button>
               <button onClick={() => submit(idemKey)} disabled={busy} className={isBuy ? btnGreen : btnRed}>
-                {busy ? "Enviando…" : isBuy ? "Confirmar compra" : "Confirmar venta"}
+                {busy
+                  ? "Enviando…"
+                  : demo
+                    ? isBuy
+                      ? "Simular compra"
+                      : "Simular venta"
+                    : isBuy
+                      ? "Confirmar compra"
+                      : "Confirmar venta"}
               </button>
             </div>
           </div>
@@ -219,6 +246,31 @@ function ResultBody({
   onClose: () => void;
   busy: boolean;
 }) {
+  if (result.kind === "sim") {
+    return (
+      <div className="mt-4">
+        <p className="text-sm text-amber-300">
+          🧪 Orden <span className="font-semibold">simulada</span> (demostración) — no se envió al broker.
+        </p>
+        <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">
+          <Row k="Orden" v={`${result.side.toUpperCase()} ${result.qty} ${result.symbol}`} />
+          <Row k="Estado" v="simulada" />
+          <Row k="ID" v="—" mono />
+          <Row k="Modo" v="demo" />
+        </dl>
+        <p className="mt-3 text-[11px] text-neutral-500">
+          En modo demo no se ejecuta nada real. Quitá <span className="font-mono">?demo=1</span> de la
+          URL para operar contra tu cuenta (paper).
+        </p>
+        <div className="mt-5 flex justify-end">
+          <button onClick={onClose} className={btnGreen}>
+            Cerrar
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (result.kind === "ok") {
     const o = result.order;
     return (

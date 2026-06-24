@@ -12,6 +12,7 @@ import { FundamentalsPanel } from "@/components/investigador/FundamentalsPanel";
 import { NewsPanel } from "@/components/investigador/NewsPanel";
 import { AvailableList } from "@/components/investigador/AvailableList";
 import { Freshness } from "@/components/investigador/Freshness";
+import { DemoModeProvider } from "@/components/ui/DemoMode";
 
 /** Único fallback: solo cuando /signals no trae ninguna card de donde tomar el disclaimer del backend. */
 const FALLBACK_DISCLAIMER =
@@ -86,6 +87,7 @@ export function InvestigadorView({
   ];
 
   return (
+    <DemoModeProvider demo={demo}>
     <div className="mx-auto flex max-w-[1340px] flex-col gap-2">
       {demo && (
         <div className="rounded-lg border border-warn/30 bg-warn/10 px-3.5 py-2 text-[12px] text-warn">
@@ -154,5 +156,6 @@ export function InvestigadorView({
         </PanelBody>
       </Panel>
     </div>
+    </DemoModeProvider>
   );
 }

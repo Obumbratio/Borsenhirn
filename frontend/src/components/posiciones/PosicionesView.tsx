@@ -7,6 +7,7 @@ import { usd } from "@/lib/signals";
 import { StatsBar, type Stat } from "@/components/ui/StatsBar";
 import { OrderConfirmDialog, type PendingOrder } from "@/components/OrderConfirmDialog";
 import { PositionCard } from "@/components/posiciones/PositionCard";
+import { DemoModeProvider } from "@/components/ui/DemoMode";
 
 /**
  * Posiciones (Fusión morado). Datos REALES de GET /me/positions; READ-ONLY.
@@ -43,6 +44,7 @@ export function PosicionesView({ demoPositions }: { demoPositions?: Position[] }
   }, [load]);
 
   return (
+    <DemoModeProvider demo={demo}>
     <div className="mx-auto flex max-w-[1340px] flex-col gap-2">
       {demo && (
         <div className="rounded-lg border border-warn/30 bg-warn/10 px-3.5 py-2 text-[12px] text-warn">
@@ -82,9 +84,11 @@ export function PosicionesView({ demoPositions }: { demoPositions?: Position[] }
         </div>
       )}
 
-      {/* Único camino de ejecución: el modal existente (confirmación + gate 451). */}
+      {/* Único camino de ejecución: el modal existente (confirmación + gate 451;
+          en demo simula vía DemoModeProvider). */}
       <OrderConfirmDialog order={pending} onClose={() => setPending(null)} onDone={load} />
     </div>
+    </DemoModeProvider>
   );
 }
 
