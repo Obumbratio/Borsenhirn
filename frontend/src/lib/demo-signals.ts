@@ -1,4 +1,5 @@
 import type { SignalsPayload } from "@/lib/signals";
+import type { Position } from "@/lib/orders";
 
 /** Fundamentales de demostración (no hay endpoint real todavía). */
 export type DemoFundamentals = { pe: string; margin: string; marketCap: string; sector: string };
@@ -113,6 +114,32 @@ export const DEMO_FUNDAMENTALS: Record<string, DemoFundamentals> = {
  * ⚠️ TEMPORAL — noticias de DEMOSTRACIÓN para la sección Investigador.
  * Sólo bajo `?demo=1`. No hay endpoint real → sin el flag, la UI muestra "—".
  */
+/**
+ * ⚠️ TEMPORAL — posiciones de DEMOSTRACIÓN para la sección Posiciones.
+ * Sólo bajo `?demo=1`. Mismo shape REAL que GET /me/positions: el `sugerido` de
+ * cada alerta (side/qty/symbol) imita lo que arma el backend (position_alerts) —
+ * el frontend no fabrica la orden, solo la pasa al modal de confirmación.
+ */
+export const DEMO_POSITIONS: Position[] = [
+  { symbol: "UNH", qty: 16, avg_entry: 407.95, current: 429.5, pnl_pct: 5.28, alertas: [] },
+  {
+    symbol: "CRM",
+    qty: 34,
+    avg_entry: 190.04,
+    current: 156.75,
+    pnl_pct: -17.52,
+    alertas: [
+      {
+        tipo: "stop_tocado",
+        mensaje: "CRM tocó tu stop de referencia (−17.5% desde tu entrada $190.04).",
+        sugerido: { side: "sell", qty: 34, symbol: "CRM" },
+      },
+    ],
+  },
+  { symbol: "GOOGL", qty: 17, avg_entry: 372.66, current: 366.55, pnl_pct: -1.64, alertas: [] },
+  { symbol: "NVDA", qty: 12, avg_entry: 130.04, current: 134.1, pnl_pct: 3.12, alertas: [] },
+];
+
 export const DEMO_NEWS: Record<string, DemoNews[]> = {
   UNH: [
     { title: "Resultados Q2 superan expectativas", source: "Reuters", when: "2d" },
