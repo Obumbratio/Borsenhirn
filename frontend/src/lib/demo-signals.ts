@@ -1,5 +1,10 @@
 import type { SignalsPayload } from "@/lib/signals";
 
+/** Fundamentales de demostración (no hay endpoint real todavía). */
+export type DemoFundamentals = { pe: string; margin: string; marketCap: string; sector: string };
+/** Noticia de demostración (no hay endpoint real todavía). */
+export type DemoNews = { title: string; source: string; when: string };
+
 /**
  * ⚠️ TEMPORAL — datos de DEMOSTRACIÓN para revisar el diseño del Tablero.
  *
@@ -27,7 +32,11 @@ export const DEMO_PAYLOAD: SignalsPayload = {
         stop: 398.49,
         target: 440.59,
         trailing_pct: 0.03,
-        fuentes: { entry: "scanner", stop: "ATR(14)", target: "R/B 1:3" },
+        fuentes: {
+          entry: "precio de mercado",
+          stop: "strategy (stop calculado)",
+          target: "config (TAKE_PROFIT_PCT=0.08)",
+        },
       },
       tesis: "Setup alcista en zona neutral de RSI con tendencia de medias al alza (datos de ejemplo).",
       que_invalida: "Cierre por debajo del stop de referencia $398.49 invalida la idea.",
@@ -47,7 +56,11 @@ export const DEMO_PAYLOAD: SignalsPayload = {
         stop: 128.74,
         target: 144.83,
         trailing_pct: 0.04,
-        fuentes: { entry: "scanner", stop: "ATR(14)", target: "R/B 1:2" },
+        fuentes: {
+          entry: "precio de mercado",
+          stop: "config (STOP_LOSS_FROM_ENTRY_PCT=0.04)",
+          target: "config (TAKE_PROFIT_PCT=0.08)",
+        },
       },
       tesis: "Continuación de momentum tras consolidación corta (datos de ejemplo).",
       que_invalida: "Pérdida del soporte $128.74 invalida la idea.",
@@ -67,7 +80,11 @@ export const DEMO_PAYLOAD: SignalsPayload = {
         stop: 479.1,
         target: 531.0,
         trailing_pct: 0.03,
-        fuentes: { entry: "scanner", stop: "ATR(14)", target: "R/B 1:1.7" },
+        fuentes: {
+          entry: "precio de mercado",
+          stop: "strategy (stop calculado)",
+          target: "config (TAKE_PROFIT_PCT=0.08)",
+        },
       },
       tesis: "Cruce de medias reciente con volumen sostenido (datos de ejemplo).",
       que_invalida: "Cierre bajo $479.10 invalida la idea.",
@@ -79,5 +96,34 @@ export const DEMO_PAYLOAD: SignalsPayload = {
       ],
       disclaimer: DISCLAIMER,
     },
+  ],
+};
+
+/**
+ * ⚠️ TEMPORAL — fundamentales de DEMOSTRACIÓN para la sección Investigador.
+ * Sólo bajo `?demo=1`. No hay endpoint real → sin el flag, la UI muestra "—".
+ */
+export const DEMO_FUNDAMENTALS: Record<string, DemoFundamentals> = {
+  UNH: { pe: "18.4", margin: "6.2%", marketCap: "$370B", sector: "Salud" },
+  NVDA: { pe: "47.1", margin: "55.0%", marketCap: "$3.3T", sector: "Tecnología" },
+  MSFT: { pe: "34.8", margin: "36.1%", marketCap: "$3.0T", sector: "Tecnología" },
+};
+
+/**
+ * ⚠️ TEMPORAL — noticias de DEMOSTRACIÓN para la sección Investigador.
+ * Sólo bajo `?demo=1`. No hay endpoint real → sin el flag, la UI muestra "—".
+ */
+export const DEMO_NEWS: Record<string, DemoNews[]> = {
+  UNH: [
+    { title: "Resultados Q2 superan expectativas", source: "Reuters", when: "2d" },
+    { title: "Expansión en servicios digitales", source: "WSJ", when: "5d" },
+  ],
+  NVDA: [
+    { title: "Nueva generación de GPUs para data center", source: "Bloomberg", when: "1d" },
+    { title: "Acuerdo de suministro con hyperscaler", source: "CNBC", when: "3d" },
+  ],
+  MSFT: [
+    { title: "Crecimiento sostenido en la nube", source: "Reuters", when: "2d" },
+    { title: "Integración de IA en productos", source: "The Verge", when: "6d" },
   ],
 };

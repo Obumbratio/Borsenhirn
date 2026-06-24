@@ -15,7 +15,7 @@ import { SignedIn, SignedOut, SignInButton, SignUpButton, UserButton } from "@cl
 const NAV: { label: string; href: string; soon?: boolean }[] = [
   { label: "Tablero", href: "/dashboard" },
   { label: "Análisis", href: "/dashboard/analisis" },
-  { label: "Investigador", href: "/dashboard/investigador", soon: true },
+  { label: "Investigador", href: "/dashboard/investigador" },
   { label: "Noticias", href: "/dashboard/noticias", soon: true },
   { label: "Whale", href: "/dashboard/whale", soon: true },
   { label: "Hirn", href: "/dashboard/hirn", soon: true },

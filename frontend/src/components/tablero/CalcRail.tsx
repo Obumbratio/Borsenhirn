@@ -16,7 +16,7 @@ import { Panel, PanelHeader } from "@/components/ui/Panel";
  * OrderConfirmDialog (confirmación + gate legal) — NUNCA ejecuta de un click.
  */
 const TOOLS: { icon: string; label: string; href: string; soon?: boolean }[] = [
-  { icon: "🔍", label: "Investigar", href: "/dashboard/investigador", soon: true },
+  { icon: "🔍", label: "Investigar", href: "/dashboard/investigador" },
   { icon: "📰", label: "Noticias", href: "/dashboard/noticias", soon: true },
   { icon: "🐋", label: "Whale", href: "/dashboard/whale", soon: true },
   { icon: "💬", label: "Hirn", href: "/dashboard/hirn", soon: true },
