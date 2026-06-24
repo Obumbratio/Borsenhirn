@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Börsenhirn — Las secciones · v5</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:#08070d; font-family:'Inter',sans-serif; color:#e5e9f0; padding-bottom:70px;}
+  .num{font-variant-numeric:tabular-nums;}
+
+  .pagehead{padding:46px 30px 26px; max-width:1340px; margin:0 auto; border-bottom:1px solid #211a30;}
+  .pagehead h1{font-family:'Fraunces',serif; font-size:32px; color:#fff; font-weight:600; margin-bottom:8px;}
+  .pagehead p{color:#9089a6; font-size:15.5px; max-width:880px; line-height:1.6;}
+  .pagehead .note{margin-top:14px; font-size:13px; color:#857d96; background:#100e19; border:1px solid #211a30; border-radius:10px; padding:12px 16px;}
+
+  .mockwrap{max-width:1340px; margin:0 auto; padding:40px 30px 0;}
+  .mocklabel{display:flex; align-items:baseline; gap:12px; margin-bottom:5px; flex-wrap:wrap;}
+  .mocklabel .n{font-family:'IBM Plex Mono',monospace; font-size:12.5px; font-weight:600; letter-spacing:0.08em; color:#a78bfa;}
+  .mocklabel .name{font-family:'Fraunces',serif; font-size:23px; color:#fff; font-weight:600;}
+  .mocklabel .for{font-size:13px; color:#6b6580;}
+  .mockdesc{color:#9089a6; font-size:14px; margin-bottom:16px; max-width:900px; line-height:1.55;}
+  .frame{border:1px solid #2a2240; border-radius:14px; overflow:hidden; margin-bottom:6px; box-shadow:0 24px 80px rgba(80,40,160,0.12);}
+
+  .app{font-size:13px;
+    --ac:#a78bfa; --ac2:#8b5cf6; --acg:#c4b5fd;
+    --bg:#0b0911; --bg2:#0f0c17; --pan:#120f1c; --pan2:#171327; --bd:#241d36; --bd2:#1d1730;
+    --tx:#cdc9da; --dim:#857d96; --dim2:#5e5675; --wht:#fff; --up:#4ade80; --dn:#f87171;}
+  .app .topbar{display:flex; align-items:center; gap:16px; padding:11px 18px; background:linear-gradient(90deg,#0f0c17,#120e1d); border-bottom:1px solid var(--bd);}
+  .app .topbar .logo{font-family:'Fraunces',serif; font-weight:600; font-size:18px; color:var(--wht);}
+  .app .topbar .logo .d{color:var(--ac);}
+  .app .topbar .nav{display:flex; gap:3px; flex-wrap:wrap;}
+  .app .topbar .nav a{font-size:12.5px; color:var(--dim); padding:6px 11px; border-radius:7px;}
+  .app .topbar .nav a.on{background:rgba(167,139,250,0.14); color:var(--ac);}
+  .app .topbar .spacer{flex:1;}
+  .app .topbar .reg{font-size:12px; color:var(--ac); border:1px solid rgba(167,139,250,0.4); background:rgba(167,139,250,0.1); padding:4px 11px; border-radius:100px;}
+  .app .topbar .av{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#a78bfa,#7c3aed);}
+  .app .statbar{display:flex; gap:18px; padding:10px 18px; background:#0c0a14; border-bottom:1px solid var(--bd2);}
+  .app .statbar .s .l{color:var(--dim2); font-size:10px;} .app .statbar .s .v{color:var(--wht); font-weight:600; font-size:13.5px;}
+  .app .body{padding:8px; background:#070610;}
+  .app .panel{background:var(--pan); border:1px solid var(--bd); border-radius:11px; overflow:hidden;}
+  .app .ph{display:flex; align-items:center; justify-content:space-between; padding:10px 14px; border-bottom:1px solid var(--bd2); font-size:12.5px;}
+  .app .ph .grip{color:var(--dim2); letter-spacing:1px; margin-right:7px;}
+  .app .ph .ttl{color:var(--tx); font-weight:600;} .app .ph .ttl .i2{color:var(--ac); margin-right:5px;}
+  .app .ph .ic{color:var(--dim2);}
+  .app .pb{padding:14px;}
+  .app h3.sec{font-family:'Fraunces',serif; color:var(--wht); font-size:22px; font-weight:600; margin-bottom:3px;}
+  .app .secsub{color:var(--dim); font-size:13px; margin-bottom:14px;}
+  .app .disc{font-size:11px; color:var(--dim2); background:var(--pan2); border:1px solid var(--bd); border-radius:8px; padding:9px 12px; line-height:1.45; margin-bottom:14px;}
+  .app .disc b{color:var(--dim);}
+  .app .btn{background:linear-gradient(135deg,#8b5cf6,#7c3aed); border:none; color:#fff; padding:8px 16px; border-radius:8px; font-weight:600; font-size:12.5px;}
+  .app .btn.ghost{background:transparent; border:1px solid var(--bd); color:var(--ac);}
+  .app .searchbar{display:flex; gap:8px; margin-bottom:14px;}
+  .app .searchbar .inp{flex:1; background:var(--pan2); border:1px solid var(--bd); border-radius:8px; padding:9px 13px; color:var(--wht); font-size:13px;}
+  .app .up{color:var(--up);} .app .dn{color:var(--dn);}
+  .app .tag{display:inline-block; font-size:10.5px; padding:2px 8px; border-radius:5px; background:rgba(167,139,250,0.14); color:var(--ac); margin-right:4px;}
+
+  /* candle reuse */
+  .gr{stroke:#4ade80;} .rd{stroke:#f87171;}
+
+  .legend{max-width:1340px; margin:48px auto 0; padding:0 30px;}
+  .legend .box{background:#100e19; border:1px solid #211a30; border-radius:14px; padding:24px 28px;}
+  .legend h3{font-family:'Fraunces',serif; color:#fff; font-size:20px; margin-bottom:14px;}
+  .legend p{color:#9089a6; font-size:14px; line-height:1.65; margin-bottom:9px;}
+  .legend b{color:#fff;} .legend .k{color:#a78bfa;}
+</style>
+</head>
+<body>
+
+<div class="pagehead">
+  <h1>Börsenhirn — Cómo se ve cada sección</h1>
+  <p>Ya tienes el esqueleto (Fusión morado). Aquí están las <b>otras secciones</b> en ese mismo lenguaje visual: Investigador, Noticias, Whale Tracker, Asistente Hirn, Track record y Posiciones. Todas comparten la barra superior, la barra de stats y el morado — para que se sienta un solo producto, no pantallas sueltas.</p>
+  <div class="pagehead note">⚠️ Maquetas con datos de ejemplo. Fíjate en cómo cada herramienta tiene su propia vista pero todas se ven "de la misma familia". El Asistente Hirn lleva sus barandas legales marcadas.</div>
+</div>
+
+<!-- ============ INVESTIGADOR ============ -->
+<div class="mockwrap">
+  <div class="mocklabel"><span class="n">SECCIÓN 1</span><span class="name">🔍 Investigador</span><span class="for">· research a fondo de una empresa</span></div>
+  <p class="mockdesc">El usuario busca una empresa y recibe un análisis profundo, informativo (sobre la empresa, no "compra esto"). Resumen, fundamentales, lo que dicen las noticias, y el análisis del modelo — todo trazable.</p>
+  <div class="frame">
+    <div class="app">
+      <div class="topbar"><span class="logo">Börsen<span class="d">hirn</span></span><span class="nav"><a>Tablero</a><a>Análisis</a><a class="on">Investigador</a><a>Noticias</a><a>Whale</a><a>Posiciones</a></span><span class="spacer"></span><span class="reg">● BULL</span><span class="av"></span></div>
+      <div class="statbar"><div class="s"><div class="l">Cuenta</div><div class="v num">$10,482</div></div><div class="s"><div class="l">Régimen</div><div class="v" style="color:#a78bfa;">BULL</div></div><div class="s"><div class="l">VIX</div><div class="v num">16.4</div></div></div>
+      <div class="body">
+        <div class="panel"><div class="pb">
+          <h3 class="sec">Investigador</h3>
+          <div class="secsub">Research a fondo de cualquier empresa o sector. Información, no recomendación.</div>
+          <div class="searchbar"><input class="inp" placeholder="Buscá una empresa… ej: UNH, Apple, sector salud" value="UNH — UnitedHealth Group"><button class="btn">Investigar</button></div>
+          <div style="display:grid; grid-template-columns:1.4fr 1fr; gap:12px;">
+            <div>
+              <div class="panel" style="margin-bottom:12px;"><div class="ph"><span class="ttl">Resumen</span><span class="tag">generado de datos</span></div><div class="pb" style="font-size:13px; color:var(--tx); line-height:1.6;">UnitedHealth opera en seguros de salud y servicios médicos. Capitalización ~$370B. El modelo le asigna 0.83 de probabilidad en el setup actual, con RSI en 48 (zona neutral) y tendencia de medias al alza. Régimen de mercado BULL.</div></div>
+              <div class="panel"><div class="ph"><span class="ttl">En qué se basa el análisis</span></div><div class="pb" style="font-size:12.5px; color:var(--dim); line-height:1.9;">RSI 48.3 · <span class="tag">indicators</span><br>Tendencia de medias: alcista · <span class="tag">strategy</span><br>Prob. del modelo: 0.83 · <span class="tag">ml_model.pkl</span><br>Régimen: BULL · <span class="tag">regime_detector</span></div></div>
+            </div>
+            <div>
+              <div class="panel" style="margin-bottom:12px;"><div class="ph"><span class="ttl">Fundamentales</span></div><div class="pb" style="font-size:12.5px;">
+                <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--bd2);"><span style="color:var(--dim);">P/E</span><span class="num">18.4</span></div>
+                <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--bd2);"><span style="color:var(--dim);">Margen</span><span class="num">6.2%</span></div>
+                <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--bd2);"><span style="color:var(--dim);">Cap. mercado</span><span class="num">$370B</span></div>
+                <div style="display:flex;justify-content:space-between;padding:5px 0;"><span style="color:var(--dim);">Sector</span><span>Salud</span></div>
+              </div></div>
+              <div class="panel"><div class="ph"><span class="ttl">📰 Noticias recientes</span></div><div class="pb" style="font-size:12px; color:var(--tx);"><div style="padding:5px 0;border-bottom:1px solid var(--bd2);">Resultados Q2 superan expectativas<div style="font-size:10.5px;color:var(--dim2);">Reuters · 2d</div></div><div style="padding:5px 0;">Expansión en servicios digitales<div style="font-size:10.5px;color:var(--dim2);">WSJ · 5d</div></div></div></div>
+            </div>
+          </div>
+        </div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ NOTICIAS ============ -->
+<div class="mockwrap">
+  <div class="mocklabel"><span class="n">SECCIÓN 2</span><span class="name">📰 Noticias</span><span class="for">· mercado en tiempo real + sentimiento</span></div>
+  <p class="mockdesc">Feed de noticias financieras con el medidor de sentimiento (Fear &amp; Greed) y filtros. La más limpia legalmente — son hechos públicos. Construye el hábito de abrir la app a diario.</p>
+  <div class="frame">
+    <div class="app">
+      <div class="topbar"><span class="logo">Börsen<span class="d">hirn</span></span><span class="nav"><a>Tablero</a><a>Análisis</a><a>Investigador</a><a class="on">Noticias</a><a>Whale</a><a>Posiciones</a></span><span class="spacer"></span><span class="reg">● BULL</span><span class="av"></span></div>
+      <div class="statbar"><div class="s"><div class="l">Cuenta</div><div class="v num">$10,482</div></div><div class="s"><div class="l">Régimen</div><div class="v" style="color:#a78bfa;">BULL</div></div><div class="s"><div class="l">VIX</div><div class="v num">16.4</div></div></div>
+      <div class="body"><div style="display:grid; grid-template-columns:1fr 300px; gap:8px;">
+        <div class="panel"><div class="ph"><span class="ttl"><span class="i2">📰</span>Noticias del mercado</span><span><span class="tag">Todas</span><span class="tag">Mi watchlist</span></span></div><div class="pb">
+          <div style="padding:11px 0; border-bottom:1px solid var(--bd2);"><div style="color:var(--wht); font-weight:600; font-size:14px; margin-bottom:3px;">NASDAQ trade halt — noticias pendientes</div><div style="color:var(--dim); font-size:12.5px;">El índice frenó operaciones brevemente a la espera de un anuncio corporativo.</div><div style="font-size:11px; color:var(--dim2); margin-top:4px;">Reuters · hace 31m · IXIC</div></div>
+          <div style="padding:11px 0; border-bottom:1px solid var(--bd2);"><div style="color:var(--wht); font-weight:600; font-size:14px; margin-bottom:3px;">News Corp lanza recompra de $1,000M en Nasdaq</div><div style="color:var(--dim); font-size:12.5px;">Programa de recompra de acciones excluyendo CDIs en Australia.</div><div style="font-size:11px; color:var(--dim2); margin-top:4px;">TipRanks · hace 1h</div></div>
+          <div style="padding:11px 0; border-bottom:1px solid var(--bd2);"><div style="color:var(--wht); font-weight:600; font-size:14px; margin-bottom:3px;">Acciones bajan tras señales de progreso EE.UU.–Irán</div><div style="color:var(--dim); font-size:12.5px;">El mercado reacciona a las noticias geopolíticas; el petróleo cae.</div><div style="font-size:11px; color:var(--dim2); margin-top:4px;">WSJ · hace 4h</div></div>
+          <div style="padding:11px 0;"><div style="color:var(--wht); font-weight:600; font-size:14px; margin-bottom:3px;">Apollo advierte volatilidad en el mercado tech</div><div style="color:var(--dim); font-size:12.5px;">Señales de fragilidad en valoraciones de tecnología.</div><div style="font-size:11px; color:var(--dim2); margin-top:4px;">Seeking Alpha · hace 9h</div></div>
+        </div></div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div class="panel"><div class="ph"><span class="ttl">Sentimiento (Fear &amp; Greed)</span></div><div class="pb" style="text-align:center;"><svg viewBox="0 0 180 96" style="width:170px;height:96px;"><path d="M16,90 A74,74 0 0,1 164,90" fill="none" stroke="#241d36" stroke-width="11"/><path d="M16,90 A74,74 0 0,1 90,16" fill="none" stroke="#f87171" stroke-width="11"/><line x1="90" y1="90" x2="58" y2="42" stroke="#fff" stroke-width="2.5"/><circle cx="90" cy="90" r="4" fill="#fff"/></svg><div style="font-size:26px; font-weight:700; color:#f87171;" class="num">38</div><div style="color:var(--dim); font-size:12px;">Miedo · VIX 16.4</div></div></div>
+          <div class="panel" style="flex:1;"><div class="ph"><span class="ttl">Decliners / Advancers</span></div><div class="pb"><div style="display:flex;justify-content:space-between;font-size:12.5px;padding:5px 0;"><span class="dn">▼ Bajan</span><span class="num">3,702</span></div><div style="display:flex;justify-content:space-between;font-size:12.5px;padding:5px 0;"><span class="up">▲ Suben</span><span class="num">2,705</span></div></div></div>
+        </div>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ WHALE TRACKER ============ -->
+<div class="mockwrap">
+  <div class="mocklabel"><span class="n">SECCIÓN 3</span><span class="name">🐋 Whale Tracker</span><span class="for">· qué hacen los grandes (13F de la SEC)</span></div>
+  <p class="mockdesc">Lo que ya tienes en backend: movimientos de Buffett, Dalio, Ackman y 44 más, sacados de los reportes 13F de la SEC. Información pública e impersonal — un diferenciador fuerte que ningún competidor muestra así de claro.</p>
+  <div class="frame">
+    <div class="app">
+      <div class="topbar"><span class="logo">Börsen<span class="d">hirn</span></span><span class="nav"><a>Tablero</a><a>Análisis</a><a>Investigador</a><a>Noticias</a><a class="on">Whale</a><a>Posiciones</a></span><span class="spacer"></span><span class="reg">● BULL</span><span class="av"></span></div>
+      <div class="statbar"><div class="s"><div class="l">Instituciones</div><div class="v num">47</div></div><div class="s"><div class="l">Movimientos (trim.)</div><div class="v num">18</div></div><div class="s"><div class="l">Fuente</div><div class="v">SEC 13F</div></div></div>
+      <div class="body"><div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+        <div class="panel"><div class="ph"><span class="ttl"><span class="i2">🐋</span>Movimientos recientes</span><span class="tag">vs trimestre anterior</span></div><div class="pb">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--bd2);"><div><div style="color:var(--wht);font-weight:600;">Warren Buffett</div><div style="font-size:11px;color:var(--dim2);">Berkshire Hathaway · 110 posiciones</div></div><div class="up" style="font-size:12.5px;">▲ aumentó UNH</div></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--bd2);"><div><div style="color:var(--wht);font-weight:600;">Bill Ackman</div><div style="font-size:11px;color:var(--dim2);">Pershing Square · 11 posiciones</div></div><div class="up" style="font-size:12.5px;">▲ nueva GOOGL</div></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--bd2);"><div><div style="color:var(--wht);font-weight:600;">Ray Dalio</div><div style="font-size:11px;color:var(--dim2);">Bridgewater · 1,040 posiciones</div></div><div class="dn" style="font-size:12.5px;">▼ redujo SPY</div></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;"><div><div style="color:var(--wht);font-weight:600;">Citadel</div><div style="font-size:11px;color:var(--dim2);">Ken Griffin</div></div><div class="up" style="font-size:12.5px;">▲ aumentó NVDA</div></div>
+        </div></div>
+        <div class="panel"><div class="ph"><span class="ttl">Símbolos más comprados por whales</span></div><div class="pb">
+          <div style="padding:8px 0;border-bottom:1px solid var(--bd2);"><div style="display:flex;justify-content:space-between;"><span style="color:var(--wht);font-weight:600;">NVDA</span><span class="up num">+8 instituciones</span></div><div style="height:6px;background:var(--bd);border-radius:3px;margin-top:5px;"><div style="width:80%;height:100%;background:#4ade80;border-radius:3px;"></div></div></div>
+          <div style="padding:8px 0;border-bottom:1px solid var(--bd2);"><div style="display:flex;justify-content:space-between;"><span style="color:var(--wht);font-weight:600;">UNH</span><span class="up num">+5 instituciones</span></div><div style="height:6px;background:var(--bd);border-radius:3px;margin-top:5px;"><div style="width:55%;height:100%;background:#4ade80;border-radius:3px;"></div></div></div>
+          <div style="padding:8px 0;"><div style="display:flex;justify-content:space-between;"><span style="color:var(--wht);font-weight:600;">GOOGL</span><span class="up num">+3 instituciones</span></div><div style="height:6px;background:var(--bd);border-radius:3px;margin-top:5px;"><div style="width:35%;height:100%;background:#4ade80;border-radius:3px;"></div></div></div>
+        </div></div>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ ASISTENTE HIRN ============ -->
+<div class="mockwrap">
+  <div class="mocklabel"><span class="n">SECCIÓN 4</span><span class="name">💬 Asistente Hirn</span><span class="for">· explica — con barandas legales</span></div>
+  <p class="mockdesc">El chat que explica el análisis y enseña a usar las herramientas. <b>Ojo:</b> es la sección con barandas — responde conceptos y análisis impersonal, pero NO da recomendaciones sobre tu cartera específica. Fíjate cómo, cuando le piden eso, redirige en vez de aconsejar.</p>
+  <div class="frame">
+    <div class="app">
+      <div class="topbar"><span class="logo">Börsen<span class="d">hirn</span></span><span class="nav"><a>Tablero</a><a>Análisis</a><a>Investigador</a><a>Noticias</a><a>Whale</a><a class="on">Asistente</a></span><span class="spacer"></span><span class="reg">● BULL</span><span class="av"></span></div>
+      <div class="body"><div class="panel"><div class="pb">
+        <h3 class="sec">Asistente Hirn</h3>
+        <div class="secsub">Te explico el análisis y cómo usar las herramientas. No doy consejo personalizado.</div>
+        <div class="disc"><b>Hirn explica, no aconseja.</b> Puede aclararte conceptos, el análisis impersonal y cómo funcionan las herramientas. No te dirá qué comprar o vender para tu cuenta — esas decisiones son tuyas.</div>
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <!-- user msg -->
+          <div style="align-self:flex-end; max-width:75%; background:linear-gradient(135deg,#8b5cf6,#7c3aed); color:#fff; padding:10px 14px; border-radius:14px 14px 4px 14px; font-size:13px;">¿Qué significa el RSI de 48 en la señal de UNH?</div>
+          <!-- hirn msg -->
+          <div style="align-self:flex-start; max-width:80%; background:var(--pan2); border:1px solid var(--bd); color:var(--tx); padding:10px 14px; border-radius:14px 14px 14px 4px; font-size:13px; line-height:1.6;">El RSI (Índice de Fuerza Relativa) mide si un activo está sobrecomprado o sobrevendido. Va de 0 a 100. Un RSI de 48 en UNH está en zona <b>neutral</b> — ni sobrecomprado (>70) ni sobrevendido (&lt;30). Es uno de los factores que el modelo combina para la señal.</div>
+          <!-- user msg 2 -->
+          <div style="align-self:flex-end; max-width:75%; background:linear-gradient(135deg,#8b5cf6,#7c3aed); color:#fff; padding:10px 14px; border-radius:14px 14px 4px 14px; font-size:13px;">¿Debería comprar UNH con mis $3,000?</div>
+          <!-- hirn redirect -->
+          <div style="align-self:flex-start; max-width:80%; background:var(--pan2); border:1px solid #5a4a1a; color:var(--tx); padding:10px 14px; border-radius:14px 14px 14px 4px; font-size:13px; line-height:1.6;"><span style="color:#f5b942; font-weight:600;">Esa decisión es tuya</span> — no puedo decirte qué comprar para tu cuenta. Lo que sí puedo: el análisis de UNH es impersonal (igual para todos) y está en la sección Análisis. Para ver cuántas acciones encajarían con tus $3,000 y tu nivel de riesgo, usá la <b>calculadora de posición</b> — vos metés tus números y ella hace la cuenta. La decisión de apretar comprar, siempre tuya.</div>
+        </div>
+        <div class="searchbar" style="margin-top:14px;"><input class="inp" placeholder="Preguntale a Hirn sobre el análisis o las herramientas…"><button class="btn">Enviar</button></div>
+      </div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ TRACK RECORD ============ -->
+<div class="mockwrap">
+  <div class="mocklabel"><span class="n">SECCIÓN 5</span><span class="name">📈 Track record</span><span class="for">· el historial honesto — tu marketing</span></div>
+  <p class="mockdesc">Cómo rindieron las señales históricas, con aciertos <b>y</b> errores sin maquillar. Es tu prueba de honestidad (anti-AI-washing) y tu mejor argumento de venta. Data histórica impersonal.</p>
+  <div class="frame">
+    <div class="app">
+      <div class="topbar"><span class="logo">Börsen<span class="d">hirn</span></span><span class="nav"><a>Tablero</a><a>Análisis</a><a>Investigador</a><a>Noticias</a><a class="on">Track record</a><a>Posiciones</a></span><span class="spacer"></span><span class="reg">● BULL</span><span class="av"></span></div>
+      <div class="body"><div class="panel"><div class="pb">
+        <h3 class="sec">Track record</h3>
+        <div class="secsub">Cómo rindieron nuestras señales — aciertos y errores, sin maquillaje.</div>
+        <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:14px;">
+          <div class="panel"><div class="pb"><div style="font-size:11px;color:var(--dim2);">Señales totales</div><div style="font-size:24px;font-weight:700;color:var(--wht);" class="num">142</div></div></div>
+          <div class="panel"><div class="pb"><div style="font-size:11px;color:var(--dim2);">Aciertos</div><div style="font-size:24px;font-weight:700;color:#4ade80;" class="num">61%</div></div></div>
+          <div class="panel"><div class="pb"><div style="font-size:11px;color:var(--dim2);">Fallidas</div><div style="font-size:24px;font-weight:700;color:#f87171;" class="num">39%</div></div></div>
+          <div class="panel"><div class="pb"><div style="font-size:11px;color:var(--dim2);">R/B promedio</div><div style="font-size:24px;font-weight:700;color:var(--wht);" class="num">1 : 2.1</div></div></div>
+        </div>
+        <div class="panel" style="margin-bottom:14px;"><div class="ph"><span class="ttl">Rendimiento acumulado (paper)</span></div><div class="pb"><svg viewBox="0 0 1080 160" style="width:100%;height:160px;"><defs><linearGradient id="tr" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a78bfa" stop-opacity="0.2"/><stop offset="1" stop-color="#a78bfa" stop-opacity="0"/></linearGradient></defs><g stroke="#1d1730"><line x1="0" y1="40" x2="1080" y2="40"/><line x1="0" y1="80" x2="1080" y2="80"/><line x1="0" y1="120" x2="1080" y2="120"/></g><path d="M0,130 C100,128 150,120 240,118 C320,116 380,124 460,108 C540,92 600,100 700,78 C800,58 860,68 940,50 C1000,38 1040,32 1080,28 L1080,160 L0,160 Z" fill="url(#tr)"/><path d="M0,130 C100,128 150,120 240,118 C320,116 380,124 460,108 C540,92 600,100 700,78 C800,58 860,68 940,50 C1000,38 1040,32 1080,28" fill="none" stroke="#a78bfa" stroke-width="2"/></svg></div></div>
+        <div class="panel"><div class="ph"><span class="ttl">Últimas señales cerradas</span></div><div class="pb">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--bd2);font-size:12.5px;"><span><b style="color:var(--wht);">AAPL</b> · rebote BB · 12 jun</span><span class="up num">+8.2% ✓ acierto</span></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--bd2);font-size:12.5px;"><span><b style="color:var(--wht);">TGT</b> · ruptura · 10 jun</span><span class="dn num">−4.1% ✗ stop</span></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--bd2);font-size:12.5px;"><span><b style="color:var(--wht);">MSFT</b> · cruce medias · 8 jun</span><span class="up num">+5.6% ✓ acierto</span></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;font-size:12.5px;"><span><b style="color:var(--wht);">CRM</b> · momentum · 6 jun</span><span class="dn num">−3.2% ✗ stop</span></div>
+        </div></div>
+      </div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ POSICIONES ============ -->
+<div class="mockwrap">
+  <div class="mocklabel"><span class="n">SECCIÓN 6</span><span class="name">💼 Posiciones</span><span class="for">· tus posiciones + alertas (alerta, no "vendé")</span></div>
+  <p class="mockdesc">Lo que ya construiste: tus posiciones reales con P&amp;L, y las alertas TP/SL como <b>"Revisar orden sugerida"</b> (nunca "vendé"). El usuario revisa y aprieta — la pantalla nunca ejecuta sola. Es la pieza con la línea legal cuidada.</p>
+  <div class="frame">
+    <div class="app">
+      <div class="topbar"><span class="logo">Börsen<span class="d">hirn</span></span><span class="nav"><a>Tablero</a><a>Análisis</a><a>Investigador</a><a>Noticias</a><a>Whale</a><a class="on">Posiciones</a></span><span class="spacer"></span><span class="reg">● BULL · PAPER</span><span class="av"></span></div>
+      <div class="statbar"><div class="s"><div class="l">Valor cuenta</div><div class="v num">$10,482</div></div><div class="s"><div class="l">P&L total</div><div class="v num" style="color:#4ade80;">▲ +4.82%</div></div><div class="s"><div class="l">Posiciones</div><div class="v num">9</div></div></div>
+      <div class="body"><div class="panel"><div class="pb">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <!-- normal position -->
+          <div class="panel"><div class="pb"><div style="display:flex;justify-content:space-between;align-items:baseline;"><span style="font-family:'Fraunces',serif;font-size:18px;color:var(--wht);font-weight:600;">UNH</span><span class="up num" style="font-size:14px;">+5.3%</span></div><div style="font-size:12px;color:var(--dim);margin-top:3px;">16 acciones · entrada $407.95 · actual $429.50</div></div></div>
+          <!-- position with alert -->
+          <div class="panel" style="border-color:#5a4a1a;"><div class="pb"><div style="display:flex;justify-content:space-between;align-items:baseline;"><span style="font-family:'Fraunces',serif;font-size:18px;color:var(--wht);font-weight:600;">CRM</span><span class="dn num" style="font-size:14px;">−17.5%</span></div><div style="font-size:12px;color:var(--dim);margin-top:3px;">34 acciones · entrada $190.04 · actual $156.75</div>
+            <div style="background:rgba(245,185,66,0.08);border:1px solid #5a4a1a;border-radius:8px;padding:10px;margin-top:10px;"><div style="font-size:11px;color:#f5b942;font-weight:600;letter-spacing:0.05em;margin-bottom:4px;">STOP TOCADO</div><div style="font-size:12px;color:var(--tx);line-height:1.5;">CRM tocó tu stop de referencia (−17.5% desde tu entrada $190.04).</div><button class="btn ghost" style="margin-top:8px;font-size:12px;">Revisar orden sugerida</button><div style="font-size:10.5px;color:var(--dim2);margin-top:6px;">Es una sugerencia para que la revises — no ejecutamos nada hasta que confirmes.</div></div>
+          </div></div>
+          <!-- two more normal -->
+          <div class="panel"><div class="pb"><div style="display:flex;justify-content:space-between;align-items:baseline;"><span style="font-family:'Fraunces',serif;font-size:18px;color:var(--wht);font-weight:600;">GOOGL</span><span class="dn num" style="font-size:14px;">−1.6%</span></div><div style="font-size:12px;color:var(--dim);margin-top:3px;">17 acciones · entrada $372.66 · actual $366.55</div></div></div>
+          <div class="panel"><div class="pb"><div style="display:flex;justify-content:space-between;align-items:baseline;"><span style="font-family:'Fraunces',serif;font-size:18px;color:var(--wht);font-weight:600;">NVDA</span><span class="up num" style="font-size:14px;">+3.1%</span></div><div style="font-size:12px;color:var(--dim);margin-top:3px;">12 acciones · entrada $130.04 · actual $134.10</div></div></div>
+        </div>
+      </div></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="box">
+    <h3>Lo que ves aquí</h3>
+    <p>Las seis secciones en el mismo lenguaje (morado, Fraunces, barra de stats, grip ⠿) — se sienten <b>un solo producto</b>, no pantallas sueltas. Cada herramienta tiene su vista propia pero coherente.</p>
+    <p style="margin-top:10px;"><b>Lo importante del Asistente Hirn:</b> mirá cómo cuando le piden "¿debería comprar?" <span class="k">redirige a la calculadora en vez de aconsejar</span>. Esa es la baranda legal que cuidamos — Hirn explica y enseña, nunca recomienda para tu cuenta.</p>
+    <p style="margin-top:10px;"><b>Y Posiciones</b> mantiene la línea: la alerta dice "Revisar orden sugerida", nunca "vendé", y aclara que no ejecuta nada hasta que confirmes.</p>
+    <p style="margin-top:14px; color:#c9c5d6;">Con esto ya tenés <b>el producto completo dibujado</b>: el tablero (Fusión) + estas seis secciones. Esto es lo que el Claude Code construye, sección por sección, conectado a tus datos. <span class="k">El diseño está definido — ahora es construir.</span></p>
+  </div>
+</div>
+
+</body>
+</html>

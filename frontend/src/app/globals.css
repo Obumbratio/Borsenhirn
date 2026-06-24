@@ -2,22 +2,41 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Sistema de diseño Börsenhirn — tema oscuro morado.
+ * Tokens tomados de docs/diseño/borsenhirn_finalistas_v4.html (Fusión A+B).
+ * Las fuentes (Fraunces / Inter / IBM Plex Mono) se inyectan desde layout.tsx
+ * con next/font y se exponen como --font-fraunces / --font-inter / --font-mono.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --bg: #08070d; /* fondo de la app */
+  --bg2: #070610; /* fondo detrás de los paneles (canaleta) */
+  --ac: #a78bfa; /* acento morado */
+  --ac2: #8b5cf6;
+  --acg: #c4b5fd;
+  --pan: #120f1c; /* panel */
+  --pan2: #171327; /* panel anidado / inputs */
+  --bd: #241d36; /* borde */
+  --bd2: #1d1730; /* borde tenue / divisores */
+  --tx: #cdc9da; /* texto base */
+  --dim: #857d96; /* texto atenuado */
+  --dim2: #5e5675; /* texto muy atenuado / grip */
+  --wht: #ffffff;
+  --up: #4ade80; /* sube / objetivo */
+  --dn: #f87171; /* baja / stop */
+  --warn: #f5b942; /* alerta (revisar orden) */
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--tx);
+  font-family: var(--font-inter), Inter, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Números tabulares (precios, cantidades) */
+.num {
+  font-variant-numeric: tabular-nums;
 }
 
 @layer utilities {
