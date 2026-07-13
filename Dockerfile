@@ -18,6 +18,6 @@ COPY . .
 # Create directories
 RUN mkdir -p logs models results reports
 
-EXPOSE 8000 8501
+EXPOSE 8000
 
-CMD ["python", "main.py"]
+CMD ["sh", "-c", "python main.py & exec python -m uvicorn borsenhirn.api.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
