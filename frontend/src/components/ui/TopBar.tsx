@@ -55,6 +55,7 @@ export function TopBar() {
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={false}
                 className={`rounded-md px-2.5 py-1.5 text-[12.5px] transition-colors ${
                   active ? "bg-ac/15 text-ac" : "text-dim hover:text-tx"
                 }`}
