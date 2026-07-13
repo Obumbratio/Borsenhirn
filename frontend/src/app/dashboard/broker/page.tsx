@@ -33,28 +33,28 @@ export default function BrokerPage() {
     <div className="mx-auto max-w-2xl">
       <header className="mb-6">
         <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-2xl font-bold tracking-tight">Conectar Alpaca</h1>
-          <span className="rounded-full bg-sky-500/15 px-2.5 py-0.5 text-xs font-medium text-sky-300 ring-1 ring-sky-500/30">
+          <h1 className="font-fraunces text-2xl font-bold tracking-tight text-wht">Conectar Alpaca</h1>
+          <span className="rounded-full bg-ac2/15 px-2.5 py-0.5 text-xs font-medium text-ac ring-1 ring-ac/30">
             PAPER
           </span>
         </div>
-        <p className="mt-1 text-sm text-neutral-400">
+        <p className="mt-1 text-sm text-dim">
           Conectá tu cuenta de práctica (paper) de Alpaca. Guardamos tus claves{" "}
-          <span className="text-neutral-300">cifradas</span> — nunca custodiamos tu dinero ni
+          <span className="text-tx">cifradas</span> — nunca custodiamos tu dinero ni
           operamos por vos; sos vos quien ejecuta.
         </p>
       </header>
 
       {status === null && !loadError && (
-        <p className="text-sm text-neutral-500">Cargando estado de la conexión…</p>
+        <p className="text-sm text-dim">Cargando estado de la conexión…</p>
       )}
 
       {loadError && (
-        <div className="rounded-xl border border-red-500/25 bg-red-500/5 p-4">
-          <p className="text-sm text-red-300">No se pudo cargar el estado: {loadError}</p>
+        <div className="rounded-xl border border-dn/25 bg-dn/5 p-4">
+          <p className="text-sm text-dn">No se pudo cargar el estado: {loadError}</p>
           <button
             onClick={loadStatus}
-            className="mt-3 rounded-md border border-neutral-700 px-3 py-1.5 text-sm hover:bg-neutral-800"
+            className="mt-3 rounded-md border border-bd px-3 py-1.5 text-sm text-tx hover:bg-pan"
           >
             Reintentar
           </button>
@@ -101,54 +101,54 @@ function ConnectedView({
   }
 
   return (
-    <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/5 p-5">
+    <div className="rounded-xl border border-up/25 bg-up/5 p-5">
       <div className="flex items-center gap-2">
         <span className="text-lg">✅</span>
-        <h2 className="font-semibold text-emerald-200">Alpaca conectado (paper)</h2>
+        <h2 className="font-semibold text-up">Alpaca conectado (paper)</h2>
       </div>
 
       <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
         <div>
-          <dt className="text-neutral-500">API Key</dt>
-          <dd className="font-mono text-neutral-200">{status.api_key_masked ?? "••••"}</dd>
+          <dt className="text-dim">API Key</dt>
+          <dd className="font-mono text-tx">{status.api_key_masked ?? "••••"}</dd>
         </div>
         {equityNum != null && Number.isFinite(equityNum) && (
           <div>
-            <dt className="text-neutral-500">Equity (paper)</dt>
-            <dd className="font-mono text-neutral-200">{usd(equityNum)}</dd>
+            <dt className="text-dim">Equity (paper)</dt>
+            <dd className="font-mono text-tx">{usd(equityNum)}</dd>
           </div>
         )}
       </dl>
 
-      <p className="mt-4 text-[11px] text-neutral-500">
-        Tu clave secreta queda cifrada en el vault y no se muestra nunca. Si la rotás en
+      <p className="mt-4 text-[11px] text-dim">
+        Tu clave secreta queda cifrada en el vault y no se muestra nunca de vuelta. Si la rotás en
         Alpaca, desconectá y volvé a conectar con el par nuevo.
       </p>
 
-      {error && <p className="mt-3 text-sm text-red-300">{error}</p>}
+      {error && <p className="mt-3 text-sm text-dn">{error}</p>}
 
       <div className="mt-4">
         {!confirming ? (
           <button
             onClick={() => setConfirming(true)}
-            className="rounded-md border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 hover:bg-neutral-800"
+            className="rounded-md border border-bd px-3 py-1.5 text-sm text-tx hover:bg-pan"
           >
             Desconectar
           </button>
         ) : (
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm text-neutral-400">¿Borrar las credenciales guardadas?</span>
+            <span className="text-sm text-dim">¿Borrar las credenciales guardadas?</span>
             <button
               onClick={doDisconnect}
               disabled={busy}
-              className="rounded-md bg-red-600 px-3 py-1.5 text-sm font-medium hover:bg-red-500 disabled:opacity-50"
+              className="rounded-md bg-dn px-3 py-1.5 text-sm font-medium text-wht hover:bg-red-500 disabled:opacity-50"
             >
               {busy ? "Desconectando…" : "Sí, desconectar"}
             </button>
             <button
               onClick={() => setConfirming(false)}
               disabled={busy}
-              className="rounded-md border border-neutral-700 px-3 py-1.5 text-sm hover:bg-neutral-800 disabled:opacity-50"
+              className="rounded-md border border-bd px-3 py-1.5 text-sm text-tx hover:bg-pan disabled:opacity-50"
             >
               Cancelar
             </button>
@@ -202,27 +202,27 @@ function ConnectForm({
             href={ALPACA_PAPER_KEYS_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-emerald-400 underline underline-offset-2 hover:text-emerald-300"
+            className="text-ac underline underline-offset-2 hover:text-acg font-medium"
           >
             panel de Paper Trading de Alpaca
           </a>{" "}
-          y, en la sección <span className="text-neutral-200">“API Keys”</span>, generá un par
+          y, en la sección <span className="text-tx">“API Keys”</span>, generá un par
           nuevo.
         </Step>
         <Step n={2}>
-          Copiá el <span className="text-neutral-200">API Key ID</span> y la{" "}
-          <span className="text-neutral-200">Secret Key</span>. La secret se muestra{" "}
-          <span className="text-neutral-200">una sola vez</span> en Alpaca — copiala en el momento.
+          Copiá el <span className="text-tx">API Key ID</span> y la{" "}
+          <span className="text-tx">Secret Key</span>. La secret se muestra{" "}
+          <span className="text-tx">una sola vez</span> en Alpaca — copiala en el momento.
         </Step>
         <Step n={3}>
-          Pegalas acá abajo y dale <span className="text-neutral-200">Conectar</span>. Validamos
+          Pegalas acá abajo y dale <span className="text-tx">Conectar</span>. Validamos
           contra Alpaca (paper) y las guardamos cifradas.
         </Step>
       </ol>
 
-      <form onSubmit={onSubmit} className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-5">
+      <form onSubmit={onSubmit} className="rounded-xl border border-bd bg-pan/40 p-5">
         <label className="block">
-          <span className="text-sm text-neutral-300">API Key ID</span>
+          <span className="text-sm text-tx">API Key ID</span>
           <input
             type="text"
             value={apiKey}
@@ -230,12 +230,12 @@ function ConnectForm({
             placeholder="PK…"
             autoComplete="off"
             spellCheck={false}
-            className="mt-1 w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 font-mono text-sm text-neutral-100 outline-none focus:border-emerald-500/60"
+            className="mt-1 w-full rounded-md border border-bd bg-pan px-3 py-2 font-mono text-sm text-tx outline-none focus:border-ac/60"
           />
         </label>
 
         <label className="mt-4 block">
-          <span className="text-sm text-neutral-300">Secret Key</span>
+          <span className="text-sm text-tx">Secret Key</span>
           <input
             type="password"
             value={apiSecret}
@@ -243,15 +243,15 @@ function ConnectForm({
             placeholder="••••••••••••••••"
             autoComplete="off"
             spellCheck={false}
-            className="mt-1 w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 font-mono text-sm text-neutral-100 outline-none focus:border-emerald-500/60"
+            className="mt-1 w-full rounded-md border border-bd bg-pan px-3 py-2 font-mono text-sm text-tx outline-none focus:border-ac/60"
           />
-          <span className="mt-1 block text-[11px] text-neutral-500">
+          <span className="mt-1 block text-[11px] text-dim">
             Se envía cifrada y no se muestra nunca de vuelta.
           </span>
         </label>
 
         {error && (
-          <p className="mt-4 rounded-md border border-red-500/25 bg-red-500/5 px-3 py-2 text-sm text-red-300">
+          <p className="mt-4 rounded-md border border-dn/25 bg-dn/5 px-3 py-2 text-sm text-dn">
             {error}
           </p>
         )}
@@ -259,14 +259,14 @@ function ConnectForm({
         <button
           type="submit"
           disabled={busy}
-          className="mt-5 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium hover:bg-emerald-500 disabled:opacity-50"
+          className="mt-5 rounded-md bg-ac2 px-4 py-2 text-sm font-medium text-wht hover:bg-ac disabled:opacity-50"
         >
           {busy ? "Validando con Alpaca…" : "Conectar"}
         </button>
       </form>
 
-      <p className="mt-4 text-[11px] leading-relaxed text-neutral-500">
-        Solo cuentas <span className="text-neutral-400">paper</span> (práctica) en esta pantalla.
+      <p className="mt-4 text-[11px] leading-relaxed text-dim">
+        Solo cuentas <span className="text-tx font-medium">paper</span> (práctica) en esta pantalla.
         No custodiamos tu dinero: tus claves son tuyas y vos ejecutás cada orden.
       </p>
     </div>
@@ -276,10 +276,10 @@ function ConnectForm({
 function Step({ n, children }: { n: number; children: React.ReactNode }) {
   return (
     <li className="flex gap-3">
-      <span className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-neutral-800 text-xs font-semibold text-neutral-300">
+      <span className="flex h-6 w-6 flex-none items-center justify-center rounded-full border border-bd bg-pan text-xs font-semibold text-tx">
         {n}
       </span>
-      <p className="text-sm leading-relaxed text-neutral-400">{children}</p>
+      <p className="text-sm leading-relaxed text-dim">{children}</p>
     </li>
   );
 }

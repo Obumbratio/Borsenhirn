@@ -43,33 +43,33 @@ export function PositionCalculator({
   const hasLevels = entry != null && stop != null;
 
   return (
-    <div className="mt-4 border-t border-neutral-800 pt-3">
+    <div className="mt-4 border-t border-bd pt-3">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between text-left text-sm font-medium text-neutral-300 hover:text-neutral-100"
+        className="flex w-full items-center justify-between text-left text-sm font-medium text-dim hover:text-tx"
         aria-expanded={open}
       >
         <span>🧮 Calcular tamaño de posición</span>
-        <span className="text-neutral-500">{open ? "−" : "+"}</span>
+        <span className="text-dim">{open ? "−" : "+"}</span>
       </button>
 
       {open && (
         <div className="mt-3">
           {!hasLevels ? (
-            <p className="text-sm text-neutral-500">
+            <p className="text-sm text-dim">
               Este análisis no tiene niveles de entrada/stop para calcular.
             </p>
           ) : (
             <>
               {/* Niveles tomados del análisis (solo lectura) */}
-              <p className="text-[11px] text-neutral-500">
+              <p className="text-[11px] text-dim">
                 Sobre los niveles del análisis — entrada{" "}
-                <span className="font-mono text-neutral-300">{usd(entry)}</span>, stop{" "}
-                <span className="font-mono text-neutral-300">{usd(stop)}</span>
+                <span className="font-mono text-tx">{usd(entry)}</span>, stop{" "}
+                <span className="font-mono text-tx">{usd(stop)}</span>
                 {target != null && (
                   <>
-                    , objetivo <span className="font-mono text-neutral-300">{usd(target)}</span>
+                    , objetivo <span className="font-mono text-tx">{usd(target)}</span>
                   </>
                 )}
                 .
@@ -98,7 +98,7 @@ export function PositionCalculator({
               {/* Resultado en vivo */}
               <div className="mt-4">
                 {result === null ? (
-                  <p className="text-sm text-neutral-500">
+                  <p className="text-sm text-dim">
                     Ingresá tu capital para ver el cálculo.
                   </p>
                 ) : result.valid ? (
@@ -108,22 +108,22 @@ export function PositionCalculator({
                         Abre el diálogo de confirmación; nunca ejecuta con un click. */}
                     <button
                       onClick={() =>
-                        setBuy({ symbol, side: "buy", qty: result.shares, estPrice: entry })
+                         setBuy({ symbol, side: "buy", qty: result.shares, estPrice: entry })
                       }
-                      className="mt-3 w-full rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium hover:bg-emerald-500"
+                      className="mt-3 w-full rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-wht hover:bg-emerald-500"
                     >
                       Comprar {result.shares} {result.shares === 1 ? "acción" : "acciones"} de {symbol} (paper)
                     </button>
                   </>
                 ) : (
-                  <p className="rounded-md border border-amber-500/25 bg-amber-500/5 px-3 py-2 text-sm text-amber-200/90">
+                  <p className="rounded-md border border-warn/25 bg-warn/5 px-3 py-2 text-sm text-warn">
                     {result.note}
                   </p>
                 )}
               </div>
 
               {/* Disclaimer (lo legal) */}
-              <p className="mt-3 text-[11px] leading-relaxed text-neutral-500">
+              <p className="mt-3 text-[11px] leading-relaxed text-dim">
                 Calculadora: hace cuentas con tus números. Vos elegís y ejecutás —
                 no es recomendación de inversión.
               </p>
@@ -141,7 +141,7 @@ export function PositionCalculator({
 function ResultView({ r, target }: { r: CalcResult; target: number | null }) {
   return (
     <div className="space-y-2">
-      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-neutral-800 bg-neutral-800 text-center">
+      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-bd bg-bd text-center">
         <Stat label="Acciones" value={String(r.shares)} tone="neutral" />
         <Stat
           label="Costo posición"
@@ -157,15 +157,15 @@ function ResultView({ r, target }: { r: CalcResult; target: number | null }) {
         )}
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-xs text-neutral-400">
+      <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-xs text-dim">
         <span>
-          Arriesgás <span className="font-mono text-neutral-200">{usd(r.riskAmount)}</span>{" "}
+          Arriesgás <span className="font-mono text-tx">{usd(r.riskAmount)}</span>{" "}
           ({usd(r.riskPerShare)} por acción)
         </span>
         {r.riskReward != null && (
           <span>
             Riesgo / Beneficio:{" "}
-            <span className="font-mono font-semibold text-neutral-100">1 : {r.riskReward.toFixed(2)}</span>
+            <span className="font-mono font-semibold text-wht">1 : {r.riskReward.toFixed(2)}</span>
           </span>
         )}
       </div>
@@ -190,7 +190,7 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="text-[11px] text-neutral-400">{label}</span>
+      <span className="text-[11px] text-dim">{label}</span>
       <input
         type="number"
         inputMode="decimal"
@@ -199,7 +199,7 @@ function Field({
         value={value}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
-        className="mt-1 w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 font-mono text-sm text-neutral-100 outline-none focus:border-emerald-500/60"
+        className="mt-1 w-full rounded-md border border-bd bg-pan2 px-3 py-2 font-mono text-sm text-tx outline-none focus:border-ac/60"
       />
     </label>
   );
@@ -217,12 +217,12 @@ function Stat({
   tone: "neutral" | "red" | "emerald";
 }) {
   const toneClass =
-    tone === "red" ? "text-red-300" : tone === "emerald" ? "text-emerald-300" : "text-neutral-100";
+    tone === "red" ? "text-dn" : tone === "emerald" ? "text-up" : "text-wht";
   return (
-    <div className="bg-neutral-900 px-2 py-3">
-      <p className="text-[11px] uppercase tracking-wide text-neutral-500">{label}</p>
+    <div className="bg-pan px-2 py-3">
+      <p className="text-[11px] uppercase tracking-wide text-dim">{label}</p>
       <p className={`mt-1 font-mono text-base font-semibold ${toneClass}`}>{value}</p>
-      {sub && <p className="mt-0.5 text-[11px] text-neutral-500">{sub}</p>}
+      {sub && <p className="mt-0.5 text-[11px] text-dim">{sub}</p>}
     </div>
   );
 }

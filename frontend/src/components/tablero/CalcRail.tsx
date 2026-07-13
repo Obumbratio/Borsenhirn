@@ -17,7 +17,7 @@ import { Panel, PanelHeader } from "@/components/ui/Panel";
  */
 const TOOLS: { icon: string; label: string; href: string; soon?: boolean }[] = [
   { icon: "🔍", label: "Investigar", href: "/dashboard/investigador" },
-  { icon: "📰", label: "Noticias", href: "/dashboard/noticias", soon: true },
+  { icon: "📰", label: "Noticias", href: "/dashboard/noticias" },
   { icon: "🐋", label: "Whale", href: "/dashboard/whale", soon: true },
   { icon: "💬", label: "Hirn", href: "/dashboard/hirn", soon: true },
 ];

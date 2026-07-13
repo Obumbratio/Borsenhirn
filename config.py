@@ -186,6 +186,12 @@ NEWSAPI_KEY          = os.getenv("NEWSAPI_KEY", "")
 FRED_API_KEY         = os.getenv("FRED_API_KEY", "")
 POLYGON_API_KEY      = os.getenv("POLYGON_API_KEY", "")
 
+# Alpaca Market Data — claves de PLATAFORMA (no BYO del usuario) para el feed
+# impersonal de noticias (Benzinga vía Alpaca). Si están vacías, el endpoint
+# /noticias degrada a la cache (o vacío) sin romper.
+ALPACA_DATA_KEY_ID = os.getenv("ALPACA_DATA_KEY_ID", "")
+ALPACA_DATA_SECRET = os.getenv("ALPACA_DATA_SECRET", "")
+
 DB_HOST     = os.getenv("DB_HOST", "localhost")
 DB_PORT     = int(os.getenv("DB_PORT", 5432))
 DB_NAME     = os.getenv("DB_NAME", "borsenhirn")

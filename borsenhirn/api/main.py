@@ -323,6 +323,29 @@ def signals(tenant_id: str = Depends(get_active_tenant)):
     return get_client_signals()
 
 
+@app.get("/noticias")
+def noticias(symbol: str | None = None, tenant_id: str = Depends(get_active_tenant)):
+    """
+    Feed de noticias IMPERSONAL (Benzinga vía Alpaca): idéntico para TODOS los
+    tenants (mismo modelo que /signals). El `tenant_id` solo gatea el acceso
+    (auth + suscripción activa), no filtra contenido. NUNCA mira la cartera del
+    usuario. Sirve de una cache compartida (TTL); si Alpaca falla, degrada a la
+    última cache sin romper.
+
+    `?symbol` opcional: debe estar dentro del universo impersonal (WATCHLIST).
+    """
+    from borsenhirn.news.feed import get_news_feed, is_in_universe
+    sym = None
+    if symbol:
+        sym = symbol.strip().upper()
+        if not is_in_universe(sym):
+            raise HTTPException(
+                status_code=400,
+                detail=f"símbolo fuera del universo impersonal: {sym}",
+            )
+    return get_news_feed(symbol=sym)
+
+
 @app.post("/billing/checkout")
 def billing_checkout(
     tenant_id: str = Depends(get_current_tenant),
