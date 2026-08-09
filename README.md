@@ -334,7 +334,7 @@ al autor. Ver [`legal/TERMS.md`](legal/TERMS.md).
 
 ## Autor
 
-**Uriel Castaño** — Computer Science student.
+**Uriel Castanada** — Computer Science student.
 GitHub: [@Obumbratio](https://github.com/Obumbratio)
 
 Este proyecto es portfolio para aplicar a roles de Data Engineer / ML Engineer
