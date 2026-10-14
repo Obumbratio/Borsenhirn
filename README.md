@@ -9,270 +9,270 @@
 [![Status](https://img.shields.io/badge/maturity-75%25%20complete-orange)](#-completion-status)
 [![License](https://img.shields.io/badge/license-research-lightgrey)](#license)
 
-> **⚠ EDUCATIONAL TOOL — NOT FINANCIAL ADVICE.** Cualquier "señal", "score" o sugerencia
-> producida por este software es para investigación personal. Resultados pasados (backtest
-> o paper trading) **no predicen** retornos futuros. Operás con tu propio capital bajo tu
-> propio riesgo. Lee el [DISCLAIMER completo](legal/DISCLAIMER.md) antes de usar.
+> **⚠ EDUCATIONAL TOOL — NOT FINANCIAL ADVICE.** Any "signal", "score", or suggestion
+> produced by this software is strictly for personal research. Past performance (backtesting
+> or paper trading) **does not predict** future returns. You trade with your own capital at your
+> own risk. Read the [full DISCLAIMER](legal/DISCLAIMER.md) before using this platform.
 
 ---
 
-Börsenhirn es una plataforma de inteligencia financiera y trading algorítmico multi-tenant orientada a comercialización SaaS (**Modelo A — BYO Alpaca Broker**). El sistema combina un motor autónomo de ejecución en paper trading con un frontend web para inversores que ejecutan sus propias decisiones con credenciales cifradas en reposo, respaldado por una infraestructura de seguridad institucional (Postgres RLS, Vault Fernet) y validación cuantitativa rigurosa (López de Prado).
+Börsenhirn is a multi-tenant financial intelligence and self-directed algorithmic trading SaaS platform (**Model A — BYO Alpaca Broker**). The system combines an autonomous paper-trading execution engine with a secure web application where self-directed investors execute their own trading decisions using credentials encrypted at rest, backed by institutional-grade security infrastructure (Postgres RLS, Fernet Vault) and rigorous quantitative ML validation (López de Prado).
 
-Construido como proyecto de portfolio para roles de **Data Engineer / ML Engineer / ML Ops** — el énfasis está en la **infraestructura de producción, defensa de datos y seguridad**, no en pretender que un modelo predice el mercado mágicamente.
+Built as a portfolio project for **Data Engineer / ML Engineer / MLOps** roles — the emphasis is on **production infrastructure, data defensibility, and security**, rather than claiming a model magically predicts the market.
 
 ---
 
 ## 📊 Completion Status
 
-El proyecto se encuentra en un **75% de madurez global**. El backend, motor de ejecución, validación ML, multi-tenancy y capa de seguridad son de **grado institucional** y están validados por más de **414 tests automatizados**. Las superficies analíticas avanzadas del frontend se encuentran en fase de prototipado/maqueta.
+The project currently stands at **75% overall completion**. The backend, execution engine, ML validation, multi-tenancy, and safety stack are **institutional-grade** and validated by over **414 automated tests**. Advanced analytical frontend surfaces are currently in the prototyping/mockup phase.
 
-Auditoría detallada disponible en el archivo de referencia: [`STATUS.md`](STATUS.md).
+Detailed audit available in the reference document: [`STATUS.md`](STATUS.md).
 
-| Área | Completitud | Estado actual |
+| Area | Completion | Current Status |
 |---|:---:|---|
-| **Core Logic & Trading Engine** | **82%** | Motor de trading decoupled, 4 regímenes, scanner multi-símbolo, multi-tenancy RLS y workers aislados. *(M1/M2/M4/M5 aún como scripts CLI independientes)*. |
-| **Seguridad & Multi-Tenancy** | **95%** | RLS estricto en 17–21 tablas, bóveda de secretos Fernet per-tenant, Clerk RS256 JWKS y audit log inmutable. |
-| **Validación Cuantitativa (ML)** | **92%** | Walk-forward purged CV, triple-barrier labeling, detección de leakage y reproducibilidad bit-exacta. |
-| **Tests & QA** | **86%** | 414+ tests en Python, 8 tests en Vitest, tests property-based con Hypothesis. *(Tests de Streamlit desactivados en CI)*. |
-| **Documentación** | **88%** | Planes de producción cerrados (B1–B10), bitácoras, diagnósticos ML y runbooks operativos. |
-| **UI / Frontend (Next.js 14)** | **64%** | Conexión BYO broker, calculadora de riesgo TS, feed de señales y diálogo de orden manual operativos. *(Whale, Hirn y Track son maquetas demo)*. |
-| **Deployment / Config** | **55%** | Local-first funcional con DB PostgreSQL y CI verde. *(Falta orquestar Next.js en docker-compose y sincronizar versiones)*. |
-| **GLOBAL** | **75%** | **Backend y seguridad production-grade; frontend en integración activa.** |
+| **Core Logic & Trading Engine** | **82%** | Decoupled trading engine, 4 regimes, multi-symbol scanner, RLS multi-tenancy, and isolated workers. *(M1/M2/M4/M5 still standalone CLI scripts)*. |
+| **Security & Multi-Tenancy** | **95%** | Strict RLS across 17–21 tables, per-tenant Fernet secret vault, Clerk RS256 JWKS, and append-only audit log. |
+| **Quantitative ML Validation** | **92%** | Walk-forward purged CV with embargo, triple-barrier labeling, leakage detection, and bit-exact reproducibility. |
+| **Tests & QA** | **86%** | 414+ Python tests, 8 Vitest tests, property-based tests with Hypothesis. *(Streamlit tests disabled in CI)*. |
+| **Documentation** | **88%** | Completed production plans (B1–B10), session logs, ML diagnostics, and operational runbooks. |
+| **UI / Frontend (Next.js 14)** | **64%** | Working BYO broker onboarding, TS risk calculator, signals feed, and manual order dialog. *(Whale, Hirn, and Track Record are demo mockups)*. |
+| **Deployment / Config** | **55%** | Working local-first environment with PostgreSQL DB and passing CI. *(Next.js container orchestration and version alignment in progress)*. |
+| **OVERALL** | **75%** | **Production-grade backend and security; frontend undergoing active integration.** |
 
 ---
 
-## 🧠 Arquitectura: "Un Cerebro, Dos Caras"
+## 🧠 Architecture: "One Brain, Two Faces"
 
-Para garantizar separación regulatoria y técnica, el sistema desacopla la generación de análisis de la ejecución:
+To guarantee regulatory and technical separation, the system decouples signal generation from order execution:
 
 ```
                                 ┌───────────────────────────────────────┐
-                                │          FUENTES DE MERCADO           │
+                                │             MARKET DATA               │
                                 │   Alpaca API · FRED · EDGAR · News    │
                                 └──────────────────┬────────────────────┘
                                                    │
                                                    ▼
                                 ┌───────────────────────────────────────┐
-                                │     SignalEngine (Cerebro Común)      │
-                                │  Régimen (4 estados) · VIX dinámico   │
-                                │  Scanner 44 símbolos · RSI/MACD/BB    │
-                                │  Score neutral 0.5 (impersonal)       │
+                                │      SignalEngine (Shared Brain)      │
+                                │  4-state regime · Dynamic VIX bands   │
+                                │  44-symbol scanner · RSI/MACD/BB      │
+                                │  Neutral score 0.5 (impersonal)       │
                                 └──────────┬─────────────────┬──────────┘
                                            │                 │
                   ┌────────────────────────┘                 └────────────────────────┐
                   ▼                                                                   ▼
     ┌───────────────────────────┐                                       ┌───────────────────────────┐
-    │       CARA INTERNA        │                                       │       CARA CLIENTE        │
-    │  (Auto-Trader / Fund)     │                                       │   (SaaS Autogestionado)   │
+    │       INTERNAL FACE       │                                       │        CLIENT FACE        │
+    │   (Auto-Trader / Fund)    │                                       │  (Self-Directed SaaS)     │
     ├───────────────────────────┤                                       ├───────────────────────────┤
     │ · borsenhirn/internal/    │                                       │ · Next.js 14 + Clerk JWT  │
-    │ · Ejecuta en paper 24/7   │                                       │ · Vault cifrado (Fernet)  │
-    │ · Auto SL / Trailing Stops│                                       │ · Calculadora riesgo (TS) │
-    │ · Registra outcomes       │                                       │ · Diálogo orden manual    │
-    │ · Alimenta Track Record   │                                       │ · Gate legal (HTTP 451)   │
+    │ · 24/7 paper execution    │                                       │ · Encrypted vault (Fernet)│
+    │ · Auto SL / Trailing Stops│                                       │ · Risk calculator (TS)    │
+    │ · Persists trade outcomes │                                       │ · Manual order dialog     │
+    │ · Powers Track Record     │                                       │ · Legal gate (HTTP 451)   │
     └─────────────┬─────────────┘                                       └─────────────┬─────────────┘
                   │                                                                   │
                   └────────────────────────┬──────────────────────────────────────────┘
                                            ▼
                                 ┌───────────────────────────────────────┐
-                                │      POSTGRESQL 18 / 16 (RLS)         │
+                                │       POSTGRESQL 18 / 16 (RLS)        │
                                 │  `app.current_tenant_id` session GUC  │
-                                │  Rol no privilegiado borsenhirn_app   │
-                                │  Audit log inmutable · Killswitch     │
+                                │  Unprivileged role borsenhirn_app     │
+                                │  Append-only audit log · Kill switch  │
                                 └───────────────────────────────────────┘
 ```
 
-1. **El Cerebro Compartido (`SignalEngine`):** Analiza el mercado de forma determinista e impersonal. Genera las mismas tarjetas de análisis y niveles de stop para todos los actores.
-2. **La Cara Interna (`borsenhirn/internal/autotrader/`):** Motor autónomo que opera una cuenta de paper trading corporativa, prueba estrategias y almacena su historial para auditar el track record. Aislado por guardrails de importación para evitar contaminación de código.
-3. **La Cara Cliente (Frontend Next.js 14):** Los usuarios conectan su propia cuenta de Alpaca mediante BYO broker. El usuario calcula su propio tamaño de lote y **debe presionar explícitamente el botón de compra**. La plataforma jamás ejecuta órdenes automáticas en cuentas de clientes.
+1. **The Shared Brain (`SignalEngine`):** Analyzes the market deterministically and impersonally. Generates identical analysis cards and stop levels across all actors.
+2. **The Internal Face (`borsenhirn/internal/autotrader/`):** Autonomous engine executing against an internal corporate paper trading account to test strategies and persist verifiable trade outcomes for track record auditing. Isolated with import guardrails to prevent code leakage.
+3. **The Client Face (Next.js 14 Frontend):** Users connect their own Alpaca account via BYO broker onboarding. The user sizes their own position and **must explicitly click the buy button**. The platform never executes automated orders on client accounts.
 
 ---
 
-## 📍 Estado de Módulos y Funcionalidades
+## 📍 Module & Feature Implementation Status
 
-### ✅ 1. Completamente Implementado (Working)
-- **Trading Engine & State Machine:** Detección de 4 regímenes (`BULL`, `BEAR`, `SIDEWAYS`, `PANIC`), scanner sobre 44 activos y ejecución en Alpaca con gestión de órdenes bracket/trailing.
-- **Validación ML Rigurosa:** PurgedKFold cross-validation con embargo temporal (López de Prado), triple-barrier labeling, detección de leakage de etiquetas y verificación de reproducibilidad SHA-256 bit-a-bit.
-- **Safety Stack & Kill Switches:** 7 verificaciones pre-orden (`sanity.py`), kill switches persistidos en base de datos por tenant y a nivel global (`global_killswitch.py`), circuit breaker para la API de Alpaca y alertas a Discord y Email.
-- **Multi-Tenancy por Row-Level Security:** 17 a 21 tablas con `tenant_id` forzado a nivel de motor PostgreSQL, rol de aplicación `borsenhirn_app` sin permisos de superusuario (`NOSUPERUSER`, `NOBYPASSRLS`), y aislamiento estricto validado por tests.
-- **Bóveda de Credenciales (Vault):** Cifrado en reposo con Fernet (`CredentialStore`) para almacenar llaves de Alpaca de clientes, con soporte de rotación de llave maestra.
-- **Autenticación & API Multi-Tenant:** FastAPI estructurado con verificación Clerk RS256 JWKS, aprovisionamiento lazy de tenants y resolución de contexto por JWT.
-- **Ejecución Manual del Cliente:** Endpoint `POST /me/orders` con deduplicación por `idempotency_key`, límites de sanidad de volumen y cumplimiento legal forzado.
-- **Audit Log & GDPR:** Tabla append-only bajo RLS que registra operaciones sensibles, con endpoints `/me/audit` y `/me/export` (exportación completa en JSON).
-- **Worker Isolation & Detección de Anomalías:** Orquestador secuencial que aísla fallos entre tenants y escaneo periódico de anomalías operativas.
-- **Frontend Core (Next.js 14):** Autenticación completa con Clerk, conexión segura con Alpaca (`/me/broker`), visualizador de setups (`/signals`), calculadora de posición en TypeScript puro con tests Vitest, y panel de posiciones con alertas TP/SL informativas (`/me/positions`).
+### ✅ 1. Fully Implemented (Working)
+- **Trading Engine & State Machine:** 4-state regime detection (`BULL`, `BEAR`, `SIDEWAYS`, `PANIC`), 44-asset scanner, and Alpaca execution with bracket/trailing order management.
+- **Rigorous ML Validation:** PurgedKFold cross-validation with temporal embargo (López de Prado), triple-barrier labeling, label leakage detection, and bit-exact SHA-256 reproducibility verification.
+- **Safety Stack & Kill Switches:** 7 pre-order sanity checks (`sanity.py`), per-tenant and global database-persisted kill switches (`global_killswitch.py`), Alpaca API circuit breaker, and multi-channel alerts (Discord & Email).
+- **Multi-Tenancy via Row-Level Security:** 17 to 21 tables enforcing `tenant_id` at the PostgreSQL engine level, unprivileged application role `borsenhirn_app` (`NOSUPERUSER`, `NOBYPASSRLS`), and strict isolation validated by tests.
+- **Credential Vault:** Fernet encryption-at-rest (`CredentialStore`) for tenant Alpaca keys, complete with master key rotation support.
+- **Authentication & Multi-Tenant API:** Structured FastAPI app with Clerk RS256 JWKS verification, lazy tenant provisioning, and JWT context resolution.
+- **Client Manual Execution:** `POST /me/orders` endpoint with `idempotency_key` deduplication, sanity caps on order volume, and enforced legal compliance gating.
+- **Audit Logging & GDPR:** Append-only table under RLS tracking sensitive operations, with `/me/audit` and `/me/export` endpoints (full JSON data portability).
+- **Worker Isolation & Anomaly Detection:** Sequential tenant runner isolating tenant failures and automated periodic anomaly scanner for operational anomalies.
+- **Core Frontend (Next.js 14):** Full Clerk authentication, secure Alpaca BYO broker connection (`/me/broker`), setup viewer (`/signals`), pure TypeScript risk calculator with Vitest suite, and live positions dashboard with informative TP/SL status badges (`/me/positions`).
 
-### 🟡 2. Parcialmente Implementado (Partial)
-- **Billing con Stripe:** Backend completo con creación de clientes, sesiones de checkout/portal y verificación de webhooks (`borsenhirn/billing/`). *Faltan los botones de checkout en la interfaz de usuario de Next.js.*
-- **Cache y Rate Limiting:** Cliente Redis con algoritmo Token Bucket y decoradores probados con 104× de aceleración (`borsenhirn/cache/`). *Aún no está cableado como middleware global en las rutas de FastAPI.*
-- **Dashboard Streamlit ("Bitácora Nocturna"):** Panel operativo para monitoreo de trading en modo single-user (`dashboard.py`). *Funciona pero sus tests unitarios están temporalmente excluidos de CI y no es multi-tenant.*
-- **Módulos de Inteligencia M1, M2, M4, M5:** Scripts funcionales en la raíz (`M1_research.py`, `m2_analyst.py`, `m4_whale.py`, `m5_assistant.py`) con Claude, FRED y SEC EDGAR. *Operan como herramientas CLI independientes; sus paquetes en `borsenhirn/m*/` son stubs vacíos y no están expuestos a la API SaaS.*
-- **Contenedores (Docker):** `Dockerfile` y `docker-compose.yml` operativos para el bot y Streamlit. *Falta incorporar el servicio de Next.js y sincronizar versiones.*
+### 🟡 2. Partially Implemented (Partial)
+- **Stripe Billing:** Complete backend supporting customer creation, checkout/portal sessions, and webhook signature verification (`borsenhirn/billing/`). *Checkout buttons currently missing from Next.js UI.*
+- **Cache & Rate Limiting:** Redis client with Token Bucket rate limiter and caching decorators verified with 104× speedup (`borsenhirn/cache/`). *Pending global middleware integration in FastAPI route handlers.*
+- **Streamlit Dashboard ("Nightly Journal"):** Operational dashboard for single-user trading monitoring (`dashboard.py`). *Functional, but unit tests are temporarily excluded in CI and it is not multi-tenant.*
+- **Intelligence Modules M1, M2, M4, M5:** Standalone root scripts (`M1_research.py`, `m2_analyst.py`, `m4_whale.py`, `m5_assistant.py`) integrating Claude, FRED, and SEC EDGAR. *Operate as independent CLI tools; corresponding packages under `borsenhirn/m*/` are empty stubs not yet exposed to the SaaS API.*
+- **Containerization (Docker):** Working `Dockerfile` and `docker-compose.yml` for the bot engine and Streamlit. *Next.js service orchestration and environment version alignment pending.*
 
-### 🚧 3. En Desarrollo / Maqueta Demo (In Progress)
-- **Frontend: Whale Alerts (`/dashboard/whale`):** Actualmente es una maqueta visual con el badge `MAQUETA DEMO` que renderiza una lista estática `MOCK_ALERTS`. Falta conectar con el parser 13F de `m4_whale.py`.
-- **Frontend: Hirn Copilot (`/dashboard/hirn`):** Maqueta visual con `MAQUETA DEMO` y campo de texto deshabilitado. Falta exponer `m5_assistant.py` mediante un endpoint multi-tenant en FastAPI.
-- **Frontend: Track Record Público (`/dashboard/track`):** Maqueta visual con `MAQUETA DEMO` y curva de equity simulada con `MOCK_CLOSED_TRADES`. Falta conectar a las métricas reales de `bot_trade_outcomes`.
+### 🚧 3. In Progress / Demo Mockup
+- **Frontend: Whale Alerts (`/dashboard/whale`):** Visual mockup displaying a `DEMO MOCKUP` badge and rendering static `MOCK_ALERTS`. Pending connection to the 13F parser in `m4_whale.py`.
+- **Frontend: Hirn Copilot (`/dashboard/hirn`):** Visual mockup displaying a `DEMO MOCKUP` badge with disabled text input. Pending multi-tenant FastAPI endpoint exposing `m5_assistant.py`.
+- **Frontend: Public Track Record (`/dashboard/track`):** Visual mockup displaying a `DEMO MOCKUP` badge and simulated equity curve from `MOCK_CLOSED_TRADES`. Pending connection to real `bot_trade_outcomes` data.
 
 ---
 
-## 🔬 Honestidad en Machine Learning
+## 🔬 Machine Learning Honesty
 
-El modelo Random Forest actual sobre indicadores técnicos obtiene un **AUC ≈ 0.50** bajo validación walk-forward purgada con embargo — es decir, **rendimiento indistinguible del azar**.
+The current Random Forest model on technical indicators achieves an **AUC ≈ 0.50** under purged walk-forward cross-validation with embargo — in other words, **performance indistinguishable from chance**.
 
-El proyecto **no afirma tener un alpha predictivo resuelto**; afirma tener la **infraestructura matemática para detectar y demostrar si una estrategia tiene o no tiene edge**, evitando el autoengaño típico del overfitting y data leakage. Toda la metodología y resultados están documentados en [`PLAN_VALIDACION_ML.md`](PLAN_VALIDACION_ML.md).
+The project **does not claim to have discovered predictive alpha**; it demonstrates the **mathematical and operational infrastructure required to detect whether a strategy has a true statistical edge**, preventing common pitfalls like overfitting and data leakage. Full methodology and results are documented in [`PLAN_VALIDACION_ML.md`](PLAN_VALIDACION_ML.md).
 
 ---
 
 ## ⚠ Known Limitations & Development Setup
 
-1. **Vistas Frontend en Maqueta:** Las secciones de *Ballenas*, *Asistente Hirn* y *Track Record* en el dashboard Next.js muestran datos de prueba con carteles visibles de advertencia.
-2. **Módulos M1–M5 Desacoplados:** Los scripts de análisis macro, 13F y scraping funcionan vía línea de comandos pero no alimentan directamente el feed `/signals` del cliente (decisión tomada para mantener las señales deterministas y libres de alucinaciones de LLM).
-3. **Credenciales en Entorno de Desarrollo:**
-   - En entornos locales de prueba, la configuración utiliza contraseñas por defecto (`uriel`) para PostgreSQL. **En producción es obligatorio configurar variables de entorno reales.**
-   - El auto-trader interno y el usuario de prueba comparten la misma cuenta de Alpaca Paper en desarrollo, por lo que el panel de posiciones puede mostrar compras ejecutadas por el bot. Para testing puro de usuario, use cuentas de paper trading separadas.
-4. **Diferencias de Versión en Contenedores:**
-   - **Target Host / Entorno Local:** Python 3.14.0 (`.python-version`) / PostgreSQL 18.
-   - **Contenedores Docker Actuales:** `python:3.12-slim` en `Dockerfile` y `postgres:16-alpine` en `docker-compose.yml`.
+1. **Frontend Mockup Views:** The *Whale Alerts*, *Hirn Copilot*, and *Track Record* pages in the Next.js dashboard display sample data with visible demo notices.
+2. **Decoupled M1–M5 Modules:** Macro analysis, 13F filing parsing, and SEC scraping scripts run via CLI but do not feed directly into the client `/signals` feed (an intentional design decision to keep signals deterministic and free of LLM hallucinations).
+3. **Development Environment Credentials:**
+   - In local development environments, configuration defaults use fallback passwords (`uriel`) for PostgreSQL. **Production deployments must supply actual environment variables.**
+   - The internal auto-trader and test client account share the same Alpaca Paper account during development, so the positions table may display orders executed by the bot. For isolated user testing, use separate paper trading accounts.
+4. **Container Version Discrepancies:**
+   - **Target Host / Local Environment:** Python 3.14.0 (`.python-version`) / PostgreSQL 18.
+   - **Current Docker Containers:** `python:3.12-slim` in `Dockerfile` and `postgres:16-alpine` in `docker-compose.yml`.
 
 ---
 
-## 🚀 Quick Start (Entorno Local)
+## 🚀 Quick Start (Local Environment)
 
-### Prerrequisitos
-- Python 3.12+ (recomendado 3.14)
-- PostgreSQL 16+ con soporte de RLS
-- Node.js 18+ (para el frontend de Next.js)
-- Redis (opcional, para caché y rate limiting)
+### Prerequisites
+- Python 3.12+ (Python 3.14 recommended)
+- PostgreSQL 16+ with RLS support
+- Node.js 18+ (for Next.js frontend)
+- Redis (optional, for cache and rate limiting)
 
-### 1. Clonar e Instalar Backend
+### 1. Clone & Install Backend
 ```bash
 git clone https://github.com/Obumbratio/proyecto_trading.git
 cd proyecto_trading
 
-# Crear entorno virtual
+# Create virtual environment
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1       # Windows PowerShell
 # source .venv/bin/activate         # Linux / macOS
 
-# Instalar dependencias con hashes verificados
+# Install dependencies with verified hashes
 pip install pip-tools
 pip-sync requirements.txt requirements-dev.txt
 ```
 
-### 2. Configuración de Entorno
+### 2. Environment Configuration
 ```bash
 cp .env.example .env
-# Configurar las variables en .env:
+# Configure variables in .env:
 # - DB_USER, DB_PASSWORD, DB_NAME
-# - BORSENHIRN_MASTER_KEY (clave Fernet para la bóveda)
+# - BORSENHIRN_MASTER_KEY (Fernet master key for secrets vault)
 # - CLERK_ISSUER, CLERK_JWKS_URL
 # - ALPACA_API_KEY, ALPACA_SECRET_KEY
 ```
 
-### 3. Migración de Base de Datos
+### 3. Database Migration
 ```bash
 psql -U postgres -d borsenhirn -f borsenhirn/safety/migrations.sql
 ```
 
-### 4. Ejecución de Tests
+### 4. Running Tests
 ```bash
-# Tests de backend (414+ tests)
+# Backend test suite (414+ tests)
 pytest -q
 
-# Test de reproducibilidad del modelo
+# Model reproducibility verification
 python scripts/verify_reproducibility.py
 
-# Tests de la calculadora en el frontend
+# Frontend risk calculator Vitest suite
 cd frontend
 npm install
 npm test
 cd ..
 ```
 
-### 5. Iniciar la Plataforma
-Para levantar todo el stack en desarrollo:
+### 5. Launch the Platform
+To run the full development stack:
 ```bash
-# Iniciar API FastAPI (puerto 8000)
+# Start FastAPI backend (port 8000)
 python -m uvicorn borsenhirn.api.main:app --host 0.0.0.0 --port 8000 --reload
 
-# Iniciar Frontend Next.js (en otra terminal, puerto 3000)
+# Start Next.js frontend (in a separate terminal, port 3000)
 cd frontend
 npm run dev
 ```
 
-O para ejecutar el dashboard Streamlit legacy:
+Or run the legacy Streamlit monitoring dashboard:
 ```bash
 streamlit run dashboard.py
 ```
 
 ---
 
-## 📁 Estructura del Repositorio
+## 📁 Repository Structure
 
 ```
 proyecto_trading/
 ├── borsenhirn/
-│   ├── anomaly/              # Detección de anomalías operativas y de volumen
+│   ├── anomaly/              # Volume and operational anomaly detection
 │   ├── api/                  # FastAPI endpoints (/me, /signals, /me/orders)
-│   ├── audit/                # Registro de auditoría inmutable
-│   ├── auth/                 # Verificación JWT de Clerk (RS256 JWKS)
-│   ├── backups/              # Exportación de datos per-tenant (GDPR)
-│   ├── billing/              # Integración con Stripe (webhooks y sesiones)
-│   ├── cache/                # Caché Redis y limitador de tasa Token Bucket
-│   ├── dashboard/            # Componentes del dashboard Streamlit
-│   ├── internal/autotrader/  # Cara interna: auto-trader 24/7 (NO-producto)
-│   ├── legal/                # Control de versiones y aceptación legal (HTTP 451)
-│   ├── ml/                   # PurgedKFold, labeling y auditoría de leakage
-│   ├── news/                 # Feed de noticias agregadas vía Alpaca/Benzinga
-│   ├── safety/               # Kill switches, checks de sanidad y alertas
-│   ├── security/             # Bóveda de credenciales cifradas con Fernet
-│   ├── signals/              # SignalEngine determinista y tarjetas honestas
-│   ├── tenancy/              # Constantes y gestión de inquilinos (RLS)
-│   └── workers/              # Orquestador multi-tenant de ciclos del bot
+│   ├── audit/                # Append-only immutable audit logging
+│   ├── auth/                 # Clerk JWT verification (RS256 JWKS)
+│   ├── backups/              # Per-tenant data export (GDPR portability)
+│   ├── billing/              # Stripe integration (webhooks and checkout sessions)
+│   ├── cache/                # Redis cache and Token Bucket rate limiting
+│   ├── dashboard/            # Streamlit dashboard components
+│   ├── internal/autotrader/  # Internal face: 24/7 auto-trader (non-product)
+│   ├── legal/                # Versioned legal compliance gating (HTTP 451)
+│   ├── ml/                   # PurgedKFold, labeling, and leakage auditing
+│   ├── news/                 # News feed aggregation via Alpaca/Benzinga
+│   ├── safety/               # Kill switches, sanity checks, and alerts
+│   ├── security/             # Fernet-encrypted credential vault
+│   ├── signals/              # Deterministic SignalEngine and honest cards
+│   ├── tenancy/              # Tenant constants and RLS context management
+│   └── workers/              # Multi-tenant bot cycle orchestrator
 │
-├── frontend/                 # Aplicación Next.js 14 (App Router)
-│   ├── src/app/dashboard/    # Vistas de señales, broker, órdenes y maquetas
-│   ├── src/components/       # Calculadora de riesgo, diálogo de compra
-│   └── src/lib/              # Clientes de API, lógica pura de sizing (Vitest)
+├── frontend/                 # Next.js 14 Web Application (App Router)
+│   ├── src/app/dashboard/    # Signals, broker, orders, and mockup views
+│   ├── src/components/       # Risk calculator, buy order modal
+│   └── src/lib/              # API clients, pure sizing logic (Vitest)
 │
-├── legal/                    # Documentación legal obligatoria
-│   ├── DISCLAIMER.md         # Exención de responsabilidad
-│   ├── TERMS.md              # Términos de servicio
-│   └── PRIVACY.md            # Política de privacidad
+├── legal/                    # Mandatory legal documentation
+│   ├── DISCLAIMER.md         # Liability disclaimer
+│   ├── TERMS.md              # Terms of Service
+│   └── PRIVACY.md            # Privacy Policy
 │
-├── scripts/                  # Herramientas CLI, validación ML y migraciones
-├── tests/                    # 414+ tests unitarios, de integración y property-based
-├── main.py                   # Loop del bot single-tenant / local
-├── strategy.py               # Lógica técnica de indicadores (RSI/MACD/BB)
-├── execution.py              # Wrapper de ejecución de órdenes en Alpaca
-└── STATUS.md                 # Auditoría de estado y checklist de pendientes
+├── scripts/                  # CLI tools, ML validation, and migrations
+├── tests/                    # 414+ unit, integration, and property-based tests
+├── main.py                   # Single-tenant / local bot loop
+├── strategy.py               # Technical indicators engine (RSI/MACD/BB)
+├── execution.py              # Alpaca order execution wrapper
+└── STATUS.md                 # Official status audit and roadmap checklist
 ```
 
 ---
 
-## 📚 Documentación Técnica Detallada
+## 📚 Detailed Technical Documentation
 
-| Documento | Contenido |
+| Document | Content |
 |---|---|
-| [`STATUS.md`](STATUS.md) | **Auditoría oficial del repositorio, métricas y checklist de roadmap.** |
-| [`PLAN_VALIDACION_ML.md`](PLAN_VALIDACION_ML.md) | Diagnóstico completo de ML: por qué el split 80/20 miente y cómo se implementó Purged CV. |
-| [`MULTI_TENANCY.md`](MULTI_TENANCY.md) | Especificación de la arquitectura Postgres RLS y variables de sesión. |
-| [`SECRETS.md`](SECRETS.md) | Diseño criptográfico de la bóveda Fernet y rotación de llaves. |
-| [`INTEGRACION_SAFETY.md`](INTEGRACION_SAFETY.md) | Cableado de kill switches y verificaciones pre-orden. |
-| [`RATE_LIMITING.md`](RATE_LIMITING.md) | Arquitectura del limitador de tasa y caché distribuido en Redis. |
-| [`REPRODUCIBILIDAD.md`](REPRODUCIBILIDAD.md) | Protocolo de lockfiles con hashes y validación bit-a-bit. |
+| [`STATUS.md`](STATUS.md) | **Official repository status audit, completion metrics, and roadmap checklist.** |
+| [`PLAN_VALIDACION_ML.md`](PLAN_VALIDACION_ML.md) | Comprehensive ML diagnosis: why 80/20 train/test splits mislead and how Purged CV was built. |
+| [`MULTI_TENANCY.md`](MULTI_TENANCY.md) | Architecture specification for PostgreSQL RLS and session GUC variables. |
+| [`SECRETS.md`](SECRETS.md) | Cryptographic design of the Fernet credential vault and master key rotation. |
+| [`INTEGRACION_SAFETY.md`](INTEGRACION_SAFETY.md) | Pre-order sanity checks and kill switch wiring. |
+| [`RATE_LIMITING.md`](RATE_LIMITING.md) | Token Bucket rate limiter architecture and distributed Redis caching. |
+| [`REPRODUCIBILIDAD.md`](REPRODUCIBILIDAD.md) | Hash-pinned dependency lockfile protocol and bit-by-bit model verification. |
 
 ---
 
 ## ⚖ License
 
-Uso educativo y de investigación. Para licencias comerciales o despliegue institucional, contactar al autor. Consultar [`legal/TERMS.md`](legal/TERMS.md).
+Research and educational use. For commercial licensing or enterprise deployment, contact the author. See [`legal/TERMS.md`](legal/TERMS.md).
 
 ---
 
-## 👤 Autor
+## 👤 Author
 
 **Uriel Castañeda**  
 GitHub: [@Obumbratio](https://github.com/Obumbratio)  
-Portfolio orientado a roles de **Data Engineer / ML Engineer / MLOps**.
+Portfolio focused on **Data Engineer / ML Engineer / MLOps** roles.

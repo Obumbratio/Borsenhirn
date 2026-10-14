@@ -3,10 +3,10 @@
 ### Overall Completion: 75%
 
 ### 🎯 META (End Goal)
-Börsenhirn is designed to become a production-grade, multi-tenant financial intelligence and self-directed algorithmic trading SaaS platform ("Modelo A — BYO Alpaca Broker"), architected around the "Un cerebro, dos caras" paradigm:
+Börsenhirn is designed to become a production-grade, multi-tenant financial intelligence and self-directed algorithmic trading SaaS platform ("Model A — BYO Alpaca Broker"), architected around the "One Brain, Two Faces" paradigm:
 
-1. **Cara Interna:** Headless auto-trading engine with 4-state regime detection, dynamic VIX bands, trailing stops, and verifiable track record persistence.
-2. **Cara Cliente:** Secure web app with Clerk auth, encrypted Alpaca credential vault (Postgres RLS), deterministic signals, position sizing calculators, and manual order execution with legal consent gating.
+1. **Internal Face:** Headless auto-trading engine with 4-state regime detection, dynamic VIX bands, trailing stops, and verifiable track record persistence.
+2. **Client Face:** Secure web app with Clerk auth, encrypted Alpaca credential vault (Postgres RLS), deterministic signals, position sizing calculators, and manual order execution with legal consent gating.
 3. **Intelligence (Hirn M1-M5):** Multi-agent system integrating FRED macro, SEC EDGAR 13F (47 institutions), Form 4 insider trades, Benzinga news, and Claude conversational copilot.
 4. **Defensible ML & Security:** López de Prado purged walk-forward CV, triple-barrier labeling, leakage detection, RLS tenant isolation, append-only audit logging, kill switches, multi-channel alerts.
 
@@ -30,13 +30,13 @@ Börsenhirn is designed to become a production-grade, multi-tenant financial int
 | Next.js Frontend (Core) | ✅ Implemented | Clerk auth, Alpaca BYO connect, signals feed, position calculator (8 vitest tests), order modal |
 | Stripe Billing | 🟡 Partial | Backend checkout/portal/webhooks exist; frontend UI buttons missing |
 | Redis Caching & Rate Limiting | 🟡 Partial | Cache client and rate limiter tested (104x speedup); not wired into API routes |
-| Streamlit Dashboard | 🟡 Partial | "Bitácora Nocturna" works single-tenant; tests disabled in CI |
+| Streamlit Dashboard | 🟡 Partial | "Nightly Journal" works single-tenant; tests disabled in CI |
 | M1 Research Agent | 🟡 Partial | Root script works; borsenhirn/m1_research/ is empty stub |
 | M2 Financial Analyst | 🟡 Partial | Root script connects FRED/SEC/Prophet; borsenhirn/m2_analyst/ is empty stub |
 | M4 Whale Tracker Engine | 🟡 Partial | 13F EDGAR scraper for 47 institutions exists; package empty, not connected to API/UI |
 | M5 Hirn Assistant Engine | 🟡 Partial | CLI assistant works; no multi-tenant RLS, not connected to UI |
 | Containerization | 🟡 Partial | Docker runs bot + Streamlit with Python 3.12/Postgres 16; Next.js frontend omitted |
-| Frontend: Whale Alerts UI | ❌ Missing/Stub | Hardcoded "MAQUETA DEMO" with static MOCK_ALERTS |
+| Frontend: Whale Alerts UI | ❌ Missing/Stub | Hardcoded "DEMO MOCKUP" with static MOCK_ALERTS |
 | Frontend: Hirn Copilot UI | ❌ Missing/Stub | Static mock chat with disabled input; no API connection |
 | Frontend: Track Record UI | ❌ Missing/Stub | Hardcoded demo with fake metrics and static SVG equity curves |
 
