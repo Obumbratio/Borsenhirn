@@ -4,10 +4,10 @@
 [![Python](https://img.shields.io/badge/python-3.14%20(target)%20%7C%203.12%20(docker)-blue.svg)](.python-version)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16%20%7C%2018%20(RLS)-336791.svg)](borsenhirn/tenancy/)
 [![Next.js](https://img.shields.io/badge/frontend-Next.js%2014-black.svg)](frontend/)
-[![Coverage](https://img.shields.io/badge/coverage-%3E60%25-brightgreen)](htmlcov/index.html)
+[![Coverage](https://img.shields.io/badge/coverage-%E2%89%A560%25%20(CI%20gate)-brightgreen)](.github/workflows/ci.yml)
 [![Tests](https://img.shields.io/badge/tests-414%2B%20passed-brightgreen)](tests/)
 [![Status](https://img.shields.io/badge/maturity-75%25%20complete-orange)](#-completion-status)
-[![License](https://img.shields.io/badge/license-research-lightgrey)](#license)
+[![License](https://img.shields.io/badge/license-proprietary%20(research%20use)-lightgrey)](legal/TERMS.md)
 
 > **⚠ EDUCATIONAL TOOL — NOT FINANCIAL ADVICE.** Any "signal", "score", or suggestion
 > produced by this software is strictly for personal research. Past performance (backtesting
@@ -28,20 +28,18 @@ The project currently stands at **75% overall completion**. The backend, executi
 
 Detailed audit available in the reference document: [`STATUS.md`](STATUS.md).
 
-| Area | Completion | Current Status |
+| Area | Score | Notes |
 |---|:---:|---|
-| **Core Logic & Trading Engine** | **82%** | Decoupled trading engine, 4 regimes, multi-symbol scanner, RLS multi-tenancy, and isolated workers. *(M1/M2/M4/M5 still standalone CLI scripts)*. |
-| **Security & Multi-Tenancy** | **95%** | Strict RLS across 17–21 tables, per-tenant Fernet secret vault, Clerk RS256 JWKS, and append-only audit log. |
-| **Quantitative ML Validation** | **92%** | Walk-forward purged CV with embargo, triple-barrier labeling, leakage detection, and bit-exact reproducibility. |
-| **Tests & QA** | **86%** | 414+ Python tests, 8 Vitest tests, property-based tests with Hypothesis. *(Streamlit tests disabled in CI)*. |
-| **Documentation** | **88%** | Completed production plans (B1–B10), session logs, ML diagnostics, and operational runbooks. |
-| **UI / Frontend (Next.js 14)** | **64%** | Working BYO broker onboarding, TS risk calculator, signals feed, and manual order dialog. *(Whale, Hirn, and Track Record are demo mockups)*. |
-| **Deployment / Config** | **55%** | Working local-first environment with PostgreSQL DB and passing CI. *(Next.js container orchestration and version alignment in progress)*. |
-| **OVERALL** | **75%** | **Production-grade backend and security; frontend undergoing active integration.** |
+| **Core Logic** | **82%** | Robust engine, safety stack, RLS multi-tenancy (security, vault, ML validation all ✅). Docked for M1/M2/M4/M5 not yet connected to the API. |
+| **UI / Frontend (Next.js 14)** | **64%** | Core flow works (BYO broker, signals, news, calculator, order dialog, positions). 3 major views are hardcoded mockups. |
+| **Tests & Validation** | **86%** | 414+ Python tests, 8 Vitest tests, Hypothesis invariants. Streamlit dashboard tests excluded from CI. |
+| **Documentation** | **88%** | Extensive production plans, ML diagnostics, and runbooks. Minor version discrepancies. |
+| **Deployment / Config** | **55%** | Local Postgres + CI work. Next.js not in Docker, version mismatches, hardcoded dev passwords. |
+| **Overall** | **75%** | **Production-grade backend; frontend intelligence views and deployment config in progress.** |
 
 ---
 
-## 🧠 Architecture: "One Brain, Two Faces"
+## 🧠 Architecture: "Un cerebro, dos caras" (One Brain, Two Faces)
 
 To guarantee regulatory and technical separation, the system decouples signal generation from order execution:
 
@@ -100,19 +98,23 @@ To guarantee regulatory and technical separation, the system decouples signal ge
 - **Client Manual Execution:** `POST /me/orders` endpoint with `idempotency_key` deduplication, sanity caps on order volume, and enforced legal compliance gating.
 - **Audit Logging & GDPR:** Append-only table under RLS tracking sensitive operations, with `/me/audit` and `/me/export` endpoints (full JSON data portability).
 - **Worker Isolation & Anomaly Detection:** Sequential tenant runner isolating tenant failures and automated periodic anomaly scanner for operational anomalies.
+- **Legal Compliance Engine:** Versioned legal acceptance (`/legal/current`, `/me/legal/accept`); order execution returns HTTP 451 until the current terms are accepted.
+- **M3 Risk Engine:** Rule-based heuristic risk scoring integrated into the signal pipeline (`m3_risk.py`).
 - **Core Frontend (Next.js 14):** Full Clerk authentication, secure Alpaca BYO broker connection (`/me/broker`), setup viewer (`/signals`), pure TypeScript risk calculator with Vitest suite, and live positions dashboard with informative TP/SL status badges (`/me/positions`).
+- **News Feed (`/dashboard/noticias`):** Real Benzinga-via-Alpaca headlines from `GET /noticias` — the same impersonal feed for every tenant, with an empty state instead of fake data.
 
 ### 🟡 2. Partially Implemented (Partial)
 - **Stripe Billing:** Complete backend supporting customer creation, checkout/portal sessions, and webhook signature verification (`borsenhirn/billing/`). *Checkout buttons currently missing from Next.js UI.*
 - **Cache & Rate Limiting:** Redis client with Token Bucket rate limiter and caching decorators verified with 104× speedup (`borsenhirn/cache/`). *Pending global middleware integration in FastAPI route handlers.*
 - **Streamlit Dashboard ("Nightly Journal"):** Operational dashboard for single-user trading monitoring (`dashboard.py`). *Functional, but unit tests are temporarily excluded in CI and it is not multi-tenant.*
 - **Intelligence Modules M1, M2, M4, M5:** Standalone root scripts (`M1_research.py`, `m2_analyst.py`, `m4_whale.py`, `m5_assistant.py`) integrating Claude, FRED, and SEC EDGAR. *Operate as independent CLI tools; corresponding packages under `borsenhirn/m*/` are empty stubs not yet exposed to the SaaS API.*
-- **Containerization (Docker):** Working `Dockerfile` and `docker-compose.yml` for the bot engine and Streamlit. *Next.js service orchestration and environment version alignment pending.*
+- **Containerization (Docker):** `Dockerfile` (`python:3.12-slim`) starts the bot loop plus the FastAPI server (honors `$PORT`, used for Render); `docker-compose.yml` adds `postgres:16-alpine` and the Streamlit dashboard. *Next.js is not containerized yet, and versions differ from the local target (see Known Limitations).*
+- **Investigador demo mode:** `/dashboard/investigador` uses real `/signals` data, but `?demo=1` renders a hardcoded demo company with a visible banner (temporary, `frontend/src/lib/demo-signals.ts`).
 
-### 🚧 3. In Progress / Demo Mockup
-- **Frontend: Whale Alerts (`/dashboard/whale`):** Visual mockup displaying a `DEMO MOCKUP` badge and rendering static `MOCK_ALERTS`. Pending connection to the 13F parser in `m4_whale.py`.
-- **Frontend: Hirn Copilot (`/dashboard/hirn`):** Visual mockup displaying a `DEMO MOCKUP` badge with disabled text input. Pending multi-tenant FastAPI endpoint exposing `m5_assistant.py`.
-- **Frontend: Public Track Record (`/dashboard/track`):** Visual mockup displaying a `DEMO MOCKUP` badge and simulated equity curve from `MOCK_CLOSED_TRADES`. Pending connection to real `bot_trade_outcomes` data.
+### 🚧 3. In Progress / Coming Soon (frontend mockups — not functional)
+- **Whale Alerts (`/dashboard/whale`):** Visual mockup with a `MAQUETA DEMO` badge rendering static `MOCK_ALERTS`. Pending connection to the 13F parser in `m4_whale.py`.
+- **Hirn Copilot (`/dashboard/hirn`):** Visual mockup with a `MAQUETA DEMO` badge and a disabled chat input; no API connection. Pending a multi-tenant FastAPI endpoint exposing `m5_assistant.py`.
+- **Public Track Record (`/dashboard/track`):** Visual mockup with a `MAQUETA DEMO` badge, fake metrics, and a static SVG equity curve from `MOCK_CLOSED_TRADES`. Pending connection to real `bot_trade_outcomes` data.
 
 ---
 
@@ -126,11 +128,12 @@ The project **does not claim to have discovered predictive alpha**; it demonstra
 
 ## ⚠ Known Limitations & Development Setup
 
-1. **Frontend Mockup Views:** The *Whale Alerts*, *Hirn Copilot*, and *Track Record* pages in the Next.js dashboard display sample data with visible demo notices.
-2. **Decoupled M1–M5 Modules:** Macro analysis, 13F filing parsing, and SEC scraping scripts run via CLI but do not feed directly into the client `/signals` feed (an intentional design decision to keep signals deterministic and free of LLM hallucinations).
-3. **Development Environment Credentials:**
-   - In local development environments, configuration defaults use fallback passwords (`uriel`) for PostgreSQL. **Production deployments must supply actual environment variables.**
-   - The internal auto-trader and test client account share the same Alpaca Paper account during development, so the positions table may display orders executed by the bot. For isolated user testing, use separate paper trading accounts.
+1. **Frontend Mockup Views:** The *Whale Alerts*, *Hirn Copilot*, and *Track Record* pages render hardcoded sample data behind a visible `MAQUETA DEMO` badge. They do not work yet.
+2. **M1–M5 Modules Not Connected to the SaaS:** The intelligence scripts are real and run from the CLI (`M1_research.py`, `m2_analyst.py`, `m4_whale.py`, `m5_assistant.py` — FRED, SEC EDGAR 13F for 47 institutions, Prophet, Claude). They have not been migrated into their `borsenhirn/m*/` packages (empty stubs today) or exposed through FastAPI, so no tenant can reach them from the web app. `m5_assistant.py` also has no multi-tenant RLS yet. *(M3 is the exception: it is wired into the signal pipeline.)*
+3. **Development Setup — hardcoded credentials ⚠:**
+   - The PostgreSQL password `uriel` is hardcoded as a fallback in `config.py`, `m5_assistant.py`, and `docker-compose.yml`. It exists only for local development and is scheduled for removal. **Never deploy with these defaults — set `DB_PASSWORD` / `DATABASE_URL` explicitly.**
+   - The internal auto-trader and the test client share the same Alpaca **paper** account in development, so `/me/positions` may show orders placed by the bot. Use separate paper accounts to test the client flow in isolation.
+   - The frontend API base URL is hardcoded to `localhost:8000` in `frontend/src/lib/*.ts`.
 4. **Container Version Discrepancies:**
    - **Target Host / Local Environment:** Python 3.14.0 (`.python-version`) / PostgreSQL 18.
    - **Current Docker Containers:** `python:3.12-slim` in `Dockerfile` and `postgres:16-alpine` in `docker-compose.yml`.
